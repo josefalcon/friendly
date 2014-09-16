@@ -1,22 +1,16 @@
 package falcon.com.friendly.fragment;
 
 
-import android.app.Activity;
-import android.os.Bundle;
 import android.app.Fragment;
+import android.os.Bundle;
 import android.provider.CallLog;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.SimpleCursorAdapter;
-import android.widget.TextView;
-
-import java.util.ArrayList;
-import java.util.List;
 
 import falcon.com.friendly.R;
 import falcon.com.friendly.resolver.CallLogResolver;
@@ -56,7 +50,7 @@ public class CallLogFragment extends Fragment {
   @Override
   public void onActivityCreated(Bundle savedInstanceState) {
     super.onActivityCreated(savedInstanceState);
-    this.listView = (ListView) getActivity().findViewById(R.id.listView);
+    this.listView = (ListView) getActivity().findViewById(R.id.callLogListView);
 
     final SimpleCursorAdapter adapter =
       new SimpleCursorAdapter(getActivity(),

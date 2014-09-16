@@ -7,7 +7,7 @@
 
     <fragment android:layout_width="fill_parent"
               android:layout_height="wrap_content"
-              android:name="falcon.com.friendly.fragment.CallLogFragment"
+              android:name="falcon.com.friendly.fragment.ContactListFragment"
               android:id="@+id/fragment" android:layout_gravity="center_horizontal"/>
 
 </LinearLayout>
