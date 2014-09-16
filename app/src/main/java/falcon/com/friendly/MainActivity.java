@@ -44,10 +44,4 @@ public class MainActivity extends Activity {
     return super.onOptionsItemSelected(item);
   }
 
-  public void dumpCallLog(View view) {
-    for (CallLogResolver.Entry entry : CallLogResolver.from(getContentResolver())) {
-      System.out.println(entry);
-    }
-  }
-
 }

@@ -3,6 +3,7 @@ package falcon.com.friendly.resolver;
 import android.content.ContentResolver;
 import android.database.Cursor;
 import android.provider.CallLog;
+import android.util.Log;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -41,15 +42,20 @@ public class CallLogResolver implements Iterable<CallLogResolver.Entry>{
     return this;
   }
 
+  public Cursor getCursor() {
+    return contentResolver.query(CallLog.Calls.CONTENT_URI,
+                                 PROJECTION,
+                                 getSelection(),
+                                 getSelectionArgs(),
+                                 null);
+  }
+
   @Override
   public Iterator<Entry> iterator() {
 
     return new Iterator<Entry>() {
-      final Cursor cursor = contentResolver.query(CallLog.Calls.CONTENT_URI,
-                                                  PROJECTION,
-                                                  getSelection(),
-                                                  getSelectionArgs(),
-                                                  null);
+      final Cursor cursor = getCursor();
+
       @Override
       public boolean hasNext() {
         return cursor.moveToNext();
@@ -73,6 +79,7 @@ public class CallLogResolver implements Iterable<CallLogResolver.Entry>{
   }
 
   private static final String[] PROJECTION = new String[] {
+    CallLog.Calls._ID,
     CallLog.Calls.DURATION,
     CallLog.Calls.NUMBER,
     CallLog.Calls.DATE,
@@ -97,8 +104,13 @@ public class CallLogResolver implements Iterable<CallLogResolver.Entry>{
         sb.append(",");
       }
     }
-    sb.append(")");
-    return sb.toString();
+    sb.append(") AND ")
+      .append(CallLog.Calls.DURATION)
+      .append(" > 300");
+
+    final String s = sb.toString();
+    Log.d("CallLogResolver", s);
+    return s;
   }
 
   /**

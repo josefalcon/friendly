@@ -2,7 +2,6 @@
 <resources>
 
     <string name="app_name">Friendly</string>
-    <string name="dumpCallLog">Dump Call Log</string>
     <string name="action_settings">Settings</string>
 
 </resources>
