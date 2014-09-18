@@ -18,21 +18,20 @@ import android.view.View;
 import falcon.com.friendly.store.FriendContract;
 import falcon.com.friendly.store.FriendlyDatabaseHelper;
 
+import static android.provider.ContactsContract.CommonDataKinds.Phone.*;
+
 
 public class NewFriendActivity extends Activity {
 
   private static final String T = "NewFriendActivity";
+
+  private ContentValues contentValues;
 
   @Override
   protected void onCreate(final Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     setContentView(R.layout.activity_new_friend);
     pickContact();
-  }
-
-  @Override
-  protected void onStart() {
-    super.onStart();
   }
 
   @Override
@@ -54,75 +53,69 @@ public class NewFriendActivity extends Activity {
     return super.onOptionsItemSelected(item);
   }
 
-  private static final int PICK_CONTACT_REQUEST = 1;  // The request code
+  private static final int PICK_CONTACT_REQUEST = 1;
+
+  public static final String[] PROJECTION = new String[] {
+    CONTACT_ID,
+    LOOKUP_KEY,
+    NUMBER,
+  };
 
   private void pickContact() {
     final Intent pickContactIntent = new Intent(Intent.ACTION_PICK, ContactsContract.Contacts.CONTENT_URI);
-    pickContactIntent.setType(ContactsContract.CommonDataKinds.Phone.CONTENT_TYPE);
+    pickContactIntent.setType(CONTENT_TYPE);
     startActivityForResult(pickContactIntent, PICK_CONTACT_REQUEST);
   }
 
   @Override
   protected void onActivityResult(final int requestCode, final int resultCode, final Intent data) {
-    // Check which request we're responding to
-    if (requestCode == PICK_CONTACT_REQUEST) {
-      // Make sure the request was successful
-      if (resultCode == RESULT_OK) {
-        // The user picked a contact.
-        // The Intent's data Uri identifies which contact was selected.
-
-        // Do something with the contact here (bigger example below)
-        final Uri contactUri = data.getData();
-        Log.d(T, contactUri.toString());
-
-
-        final String[] projection = {
-          ContactsContract.CommonDataKinds.Phone.CONTACT_ID,
-          ContactsContract.CommonDataKinds.Phone.LOOKUP_KEY,
-          ContactsContract.CommonDataKinds.Phone.NUMBER,
-        };
-
-        final Cursor cursor = getContentResolver()
-          .query(contactUri, projection, null, null, null);
-
+    if (requestCode == PICK_CONTACT_REQUEST && resultCode == RESULT_OK) {
+      final Uri contactUri = data.getData();
+      final Cursor cursor = getContentResolver().query(contactUri, PROJECTION, null, null, null);
+      try {
         if (cursor.moveToFirst()) {
-          final long contactId =
-            cursor.getLong(cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.CONTACT_ID));
-          final String lookupKey =
-            cursor.getString(cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.LOOKUP_KEY));
-
-          final Uri lookupUri = ContactsContract.Contacts.getLookupUri(contactId, lookupKey);
-          Log.d(T, lookupUri.toString());
-          Log.d(T, contactId + "");
-          Log.d(T, lookupKey);
-
+          final long contactId = cursor.getLong(cursor.getColumnIndex(CONTACT_ID));
+          final String lookupKey = cursor.getString(cursor.getColumnIndex(LOOKUP_KEY));
           final String phoneNumber =
-            cleanPhoneNumber(cursor.getString(cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER)));
-          Log.d(T, phoneNumber);
-          Log.d(T, "Saving friend...");
+            cleanPhoneNumber(cursor.getString(cursor.getColumnIndex(NUMBER)));
 
-          final FriendlyDatabaseHelper helper = FriendlyDatabaseHelper.getInstance(this);
-          final SQLiteDatabase db = helper.getWritableDatabase();
-
-          final ContentValues contentValues = new ContentValues();
+          contentValues = new ContentValues();
           contentValues.put(FriendContract.FriendEntry.CONTACT_ID, contactId);
           contentValues.put(FriendContract.FriendEntry.LOOKUP_KEY, lookupKey);
           contentValues.put(FriendContract.FriendEntry.NUMBER, phoneNumber);
-
-          try {
-            db.insertOrThrow(FriendContract.FriendEntry.TABLE, null, contentValues);
-          } catch (final SQLException e) {
-            Log.d(T, "Ignoring duplicate friend");
-          }
-          Log.d(T, "Saved");
         }
+      } finally {
+        cursor.close();
       }
+    } else {
+      finish();
     }
   }
 
   public void backToMainActivity(final View view) {
+    if (contentValues != null) {
+      saveFriend(contentValues);
+    }
     finish();
   }
+
+  /**
+   * Persists the given ContentValues to the Friend database table.
+   *
+   * @param contentValues the ContentValues representing a Friend.
+   */
+  private void saveFriend(final ContentValues contentValues) {
+    Log.d(T, "Saving friend...");
+    final FriendlyDatabaseHelper helper = FriendlyDatabaseHelper.getInstance(this);
+    final SQLiteDatabase db = helper.getWritableDatabase();
+    try {
+      db.insertOrThrow(FriendContract.FriendEntry.TABLE, null, contentValues);
+    } catch (final SQLException e) {
+      Log.d(T, "Ignoring duplicate friend...");
+    }
+    Log.d(T, "Done");
+  }
+
 
   /**
    * Strips separators and formats the given phone number into a canonical form.
@@ -130,7 +123,7 @@ public class NewFriendActivity extends Activity {
    * @param rawNumber the raw number to clean
    * @return a canonical phone number
    */
-  public String cleanPhoneNumber(final String rawNumber) {
+  private String cleanPhoneNumber(final String rawNumber) {
     return PhoneNumberUtils.stripSeparators(PhoneNumberUtils.formatNumber(rawNumber));
   }
 }
