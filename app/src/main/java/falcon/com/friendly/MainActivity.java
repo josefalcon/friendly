@@ -1,10 +1,14 @@
 package falcon.com.friendly;
 
 import android.app.Activity;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
+import android.provider.ContactsContract;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 
 import falcon.com.friendly.resolver.CallLogResolver;
 
@@ -34,6 +38,11 @@ public class MainActivity extends Activity {
       return true;
     }
     return super.onOptionsItemSelected(item);
+  }
+
+  public void startNewFriendActivity(final View view) {
+    final Intent intent = new Intent(this, NewFriendActivity.class);
+    startActivity(intent);
   }
 
 }
