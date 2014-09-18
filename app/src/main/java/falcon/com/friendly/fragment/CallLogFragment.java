@@ -29,7 +29,7 @@ public class CallLogFragment extends Fragment {
   }
 
   @Override
-  public void onCreate(Bundle savedInstanceState) {
+  public void onCreate(final Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
 
     Log.d("CallLogFragment", "onCreate invoked");
@@ -37,18 +37,18 @@ public class CallLogFragment extends Fragment {
   }
 
   @Override
-  public View onCreateView(LayoutInflater inflater,
-                           ViewGroup container,
-                           Bundle savedInstanceState) {
+  public View onCreateView(final LayoutInflater inflater,
+                           final ViewGroup container,
+                           final Bundle savedInstanceState) {
     Log.d("CallLogFragment", "onCreateView invoked");
-    for (CallLogResolver.Entry entry : callLogResolver) {
+    for (final CallLogResolver.Entry entry : callLogResolver) {
       Log.d("CallLogFragment", entry.toString());
     }
     return inflater.inflate(R.layout.call_log_fragment, container, false);
   }
 
   @Override
-  public void onActivityCreated(Bundle savedInstanceState) {
+  public void onActivityCreated(final Bundle savedInstanceState) {
     super.onActivityCreated(savedInstanceState);
     this.listView = (ListView) getActivity().findViewById(R.id.callLogListView);
 
@@ -63,7 +63,7 @@ public class CallLogFragment extends Fragment {
     this.listView.setAdapter(adapter);
     this.listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
       @Override
-      public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+      public void onItemClick(final AdapterView<?> parent, final View view, final int position, final long id) {
         Log.d("CallLogFragment", position + "");
       }
     });

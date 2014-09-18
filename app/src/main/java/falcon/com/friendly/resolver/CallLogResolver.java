@@ -12,10 +12,10 @@ import java.util.Set;
 
 public class CallLogResolver implements Iterable<CallLogResolver.Entry>{
 
-  private ContentResolver contentResolver;
+  private final ContentResolver contentResolver;
   private Set<String> numbersFilter;
 
-  public CallLogResolver(ContentResolver contentResolver) {
+  public CallLogResolver(final ContentResolver contentResolver) {
     this.contentResolver = contentResolver;
   }
 
@@ -139,7 +139,7 @@ public class CallLogResolver implements Iterable<CallLogResolver.Entry>{
     public Entry() {
     }
 
-    public Entry(long duration, String number, long timestamp) {
+    public Entry(final long duration, final String number, final long timestamp) {
       this.duration = duration;
       this.number = number;
       this.timestamp = timestamp;
