@@ -25,7 +25,6 @@ public class CallLogFragment extends Fragment {
   private ListView listView;
 
   public CallLogFragment() {
-    // Required empty public constructor
   }
 
   @Override

@@ -96,4 +96,11 @@ public class FriendFragment extends Fragment implements LoaderManager.LoaderCall
   public void onLoaderReset(final Loader<Cursor> loader) {
     listViewAdapter.changeCursor(null);
   }
+
+  /**
+   * Refreshes the list view associated with this fragment.
+   */
+  public void refresh() {
+    getLoaderManager().restartLoader(0, null, this);
+  }
 }

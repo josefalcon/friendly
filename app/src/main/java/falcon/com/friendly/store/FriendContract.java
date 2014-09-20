@@ -28,6 +28,12 @@ public final class FriendContract {
      * <P>Type: TEXT</P>
      */
     public static final String LOOKUP_KEY = "lookup_key";
+
+    /**
+     * The date of the last contact with this friend, stored as the number of seconds since epoch.
+     * <P>Type: INTEGER</P>
+     */
+    public static final String LAST_CONTACT = "last_contact";
   }
 
 }

@@ -72,9 +72,13 @@ public class NewFriendActivity extends Activity {
   }
 
   public void saveAndFinish(final View view) {
+    int result = RESULT_CANCELED;
     if (contentValues != null) {
-      saveFriend(contentValues);
+      if (saveFriend(contentValues)) {
+        result = RESULT_OK;
+      }
     }
+    setResult(result);
     finish();
   }
 
@@ -83,16 +87,18 @@ public class NewFriendActivity extends Activity {
    *
    * @param contentValues the ContentValues representing a Friend.
    */
-  private void saveFriend(final ContentValues contentValues) {
+  private boolean saveFriend(final ContentValues contentValues) {
     Log.d(T, "Saving friend...");
     final FriendlyDatabaseHelper helper = FriendlyDatabaseHelper.getInstance(this);
     final SQLiteDatabase db = helper.getWritableDatabase();
     try {
-      db.insertOrThrow(FriendContract.FriendEntry.TABLE, null, contentValues);
+      final long id = db.insertOrThrow(FriendContract.FriendEntry.TABLE, null, contentValues);
+      return id != -1;
     } catch (final SQLException e) {
       Log.d(T, "Ignoring duplicate friend...");
     }
     Log.d(T, "Done");
+    return false;
   }
 
 
