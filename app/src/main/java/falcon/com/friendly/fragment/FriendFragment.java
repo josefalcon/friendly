@@ -11,6 +11,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.app.Fragment;
 import android.provider.ContactsContract;
+import android.text.format.DateUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -18,6 +19,7 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.SimpleCursorAdapter;
+import android.widget.TextView;
 
 import falcon.com.friendly.R;
 import falcon.com.friendly.resolver.CallLogResolver;
@@ -60,11 +62,32 @@ public class FriendFragment extends Fragment implements LoaderManager.LoaderCall
 
     listViewAdapter =
       new SimpleCursorAdapter(getActivity(),
-                              android.R.layout.simple_list_item_1,
+                              android.R.layout.simple_list_item_2,
                               null,
-                              new String[]{FriendEntry.NUMBER},
-                              new int[]{android.R.id.text1},
+                              new String[]{FriendEntry.NUMBER, FriendEntry.LAST_CONTACT},
+                              new int[]{android.R.id.text1, android.R.id.text2},
                               0);
+
+    listViewAdapter.setViewBinder(new SimpleCursorAdapter.ViewBinder() {
+      public boolean setViewValue(final View view, final Cursor cursor, final int columnIndex) {
+        if (columnIndex == cursor.getColumnIndex(FriendEntry.LAST_CONTACT)) {
+          final long lastContact = cursor.getLong(columnIndex);
+          final TextView textView = (TextView) view;
+
+          final CharSequence text;
+          if (lastContact < 0) {
+            text = "too long ago!";
+          } else {
+            text = DateUtils.getRelativeTimeSpanString(lastContact,
+                                                       System.currentTimeMillis(),
+                                                       DateUtils.MINUTE_IN_MILLIS);
+          }
+          textView.setText(text);
+          return true;
+        }
+        return false;
+      }
+    });
 
     listView.setAdapter(listViewAdapter);
     listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {

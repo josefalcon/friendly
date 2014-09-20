@@ -15,6 +15,9 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 
+import java.util.Date;
+
+import falcon.com.friendly.resolver.CallLogResolver;
 import falcon.com.friendly.store.FriendContract;
 import falcon.com.friendly.store.FriendlyDatabaseHelper;
 
@@ -29,10 +32,14 @@ public class NewFriendActivity extends Activity {
 
   private ContentValues contentValues;
 
+  private CallLogResolver callLogResolver;
+
   @Override
   protected void onCreate(final Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     setContentView(R.layout.activity_new_friend);
+
+    callLogResolver = new CallLogResolver(getContentResolver());
 
     final Intent pickContactIntent =
       new Intent(Intent.ACTION_PICK, ContactsContract.Contacts.CONTENT_URI);
@@ -57,11 +64,13 @@ public class NewFriendActivity extends Activity {
           final String lookupKey = cursor.getString(cursor.getColumnIndex(LOOKUP_KEY));
           final String phoneNumber =
             cleanPhoneNumber(cursor.getString(cursor.getColumnIndex(NUMBER)));
+          final long lastContact = callLogResolver.getLastContact(phoneNumber);
 
           contentValues = new ContentValues();
           contentValues.put(FriendContract.FriendEntry.CONTACT_ID, contactId);
           contentValues.put(FriendContract.FriendEntry.LOOKUP_KEY, lookupKey);
           contentValues.put(FriendContract.FriendEntry.NUMBER, phoneNumber);
+          contentValues.put(FriendContract.FriendEntry.LAST_CONTACT, lastContact);
         }
       } finally {
         cursor.close();
@@ -71,6 +80,11 @@ public class NewFriendActivity extends Activity {
     }
   }
 
+  /**
+   * Saves the selected contact into the database and returns back to the parent activity.
+   *
+   * @param view the calling view
+   */
   public void saveAndFinish(final View view) {
     int result = RESULT_CANCELED;
     if (contentValues != null) {
@@ -88,7 +102,6 @@ public class NewFriendActivity extends Activity {
    * @param contentValues the ContentValues representing a Friend.
    */
   private boolean saveFriend(final ContentValues contentValues) {
-    Log.d(T, "Saving friend...");
     final FriendlyDatabaseHelper helper = FriendlyDatabaseHelper.getInstance(this);
     final SQLiteDatabase db = helper.getWritableDatabase();
     try {
@@ -97,10 +110,8 @@ public class NewFriendActivity extends Activity {
     } catch (final SQLException e) {
       Log.d(T, "Ignoring duplicate friend...");
     }
-    Log.d(T, "Done");
     return false;
   }
-
 
   /**
    * Strips separators and formats the given phone number into a canonical form.
