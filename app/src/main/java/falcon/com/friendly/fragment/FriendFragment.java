@@ -73,11 +73,6 @@ public class FriendFragment extends Fragment implements LoaderManager.LoaderCall
         @Override
         public View getView(final int position, final View convertView, final ViewGroup parent) {
           final View view = super.getView(position, convertView, parent);
-
-          /*
-                  |-----------|-----------|
-              last contact    now  lastcontact + frequency
-           */
           if (view != null) {
             final Cursor cursor = getCursor();
             if (cursor.moveToPosition(position)) {
@@ -85,16 +80,11 @@ public class FriendFragment extends Fragment implements LoaderManager.LoaderCall
               final long frequency = cursor.getLong(cursor.getColumnIndex(FriendEntry.FREQUENCY));
               final long now = System.currentTimeMillis();
               if (lastContact < 0 || lastContact + frequency <= now) {
-                // red
-                view.setBackgroundColor(Color.rgb(255, 50, 0));
+                view.setBackgroundColor(RED);
               } else {
                 final float scale = (float) now / (lastContact + frequency);
-                final int colorIndex = (int) (scale * 10);
-
                 Log.d(T, "scale: " + scale);
-                Log.d(T, "colorIndex: " + colorIndex);
-
-                view.setBackgroundColor(getColorIndicator(colorIndex));
+                view.setBackgroundColor(getColorIndicator(scale));
               }
             }
           }
@@ -161,17 +151,25 @@ public class FriendFragment extends Fragment implements LoaderManager.LoaderCall
     getLoaderManager().restartLoader(0, null, this);
   }
 
-  private int getColorIndicator(final int index) {
-    int red = 5;
-    int green = 255;
-    final int step = 50;
+  private static final int GREEN = Color.rgb(135, 184, 41);
 
-    if (index < 6) {
-      red += (index * step);
-    } else {
-      red = 255;
-      green -= ((index - 5) * step);
+  private static final int ORANGE = Color.rgb(255, 183, 0);
+
+  private static final int RED = Color.rgb(234, 54, 31);
+
+  /**
+   * Returns a color as an indication of the given scale.
+   *
+   * @param scale the scale to color
+   * @return a color as an indication of the given scale
+   */
+  private int getColorIndicator(final float scale) {
+    int color = RED;
+    if (scale < 0.35) {
+      color = GREEN;
+    } else if (scale < 0.75) {
+      color = ORANGE;
     }
-    return Color.rgb(red, green, 0);
+    return color;
   }
 }
