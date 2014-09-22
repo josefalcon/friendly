@@ -129,7 +129,7 @@ public class CallLogResolver implements Iterable<CallLogResolver.Entry>{
   public long getLastContact(final String number) {
     final Uri uri = Uri.withAppendedPath(CallLog.Calls.CONTENT_FILTER_URI, Uri.encode(number));
 
-    final String selection = CallLog.Calls.DURATION + " > 1";
+    final String selection = CallLog.Calls.DURATION + " > 300";
     final Cursor cursor = contentResolver.query(uri,
                                                new String[]{CallLog.Calls.DATE},
                                                selection,

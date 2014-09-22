@@ -8,7 +8,7 @@ import static falcon.com.friendly.store.FriendContract.*;
 
 public class FriendlyDatabaseHelper extends SQLiteOpenHelper {
 
-  public static final int DATABASE_VERSION = 7;
+  public static final int DATABASE_VERSION = 8;
   public static final String DATABASE_NAME = "Friendly";
 
   private static final String CREATE_FRIEND_ENTRY_TABLE_SQL =
@@ -19,6 +19,7 @@ public class FriendlyDatabaseHelper extends SQLiteOpenHelper {
     + FriendEntry.CONTACT_ID + " INTEGER, "
     + FriendEntry.LOOKUP_KEY + " TEXT, "
     + FriendEntry.LAST_CONTACT + " INTEGER, "
+    + FriendEntry.FREQUENCY + " INTEGER, "
     + "UNIQUE ("
     + FriendEntry.CONTACT_ID
     + ", "

@@ -7,6 +7,7 @@ import android.content.CursorLoader;
 import android.content.Loader;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
 import android.app.Fragment;
@@ -32,6 +33,8 @@ import static falcon.com.friendly.store.FriendContract.*;
  * A simple {@link Fragment} subclass.
  */
 public class FriendFragment extends Fragment implements LoaderManager.LoaderCallbacks<Cursor>{
+
+  private static final String T = "FriendFragment";
 
   private ListView listView;
 
@@ -66,7 +69,38 @@ public class FriendFragment extends Fragment implements LoaderManager.LoaderCall
                               null,
                               new String[]{FriendEntry.NUMBER, FriendEntry.LAST_CONTACT},
                               new int[]{android.R.id.text1, android.R.id.text2},
-                              0);
+                              0) {
+        @Override
+        public View getView(final int position, final View convertView, final ViewGroup parent) {
+          final View view = super.getView(position, convertView, parent);
+
+          /*
+                  |-----------|-----------|
+              last contact    now  lastcontact + frequency
+           */
+          if (view != null) {
+            final Cursor cursor = getCursor();
+            if (cursor.moveToPosition(position)) {
+              final long lastContact = cursor.getLong(cursor.getColumnIndex(FriendEntry.LAST_CONTACT));
+              final long frequency = cursor.getLong(cursor.getColumnIndex(FriendEntry.FREQUENCY));
+              final long now = System.currentTimeMillis();
+              if (lastContact < 0 || lastContact + frequency <= now) {
+                // red
+                view.setBackgroundColor(Color.rgb(255, 50, 0));
+              } else {
+                final float scale = (float) now / (lastContact + frequency);
+                final int colorIndex = (int) (scale * 10);
+
+                Log.d(T, "scale: " + scale);
+                Log.d(T, "colorIndex: " + colorIndex);
+
+                view.setBackgroundColor(getColorIndicator(colorIndex));
+              }
+            }
+          }
+          return view;
+        }
+      };
 
     listViewAdapter.setViewBinder(new SimpleCursorAdapter.ViewBinder() {
       public boolean setViewValue(final View view, final Cursor cursor, final int columnIndex) {
@@ -125,5 +159,19 @@ public class FriendFragment extends Fragment implements LoaderManager.LoaderCall
    */
   public void refresh() {
     getLoaderManager().restartLoader(0, null, this);
+  }
+
+  private int getColorIndicator(final int index) {
+    int red = 5;
+    int green = 255;
+    final int step = 50;
+
+    if (index < 6) {
+      red += (index * step);
+    } else {
+      red = 255;
+      green -= ((index - 5) * step);
+    }
+    return Color.rgb(red, green, 0);
   }
 }

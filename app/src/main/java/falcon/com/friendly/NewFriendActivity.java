@@ -14,8 +14,10 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.EditText;
 
 import java.util.Date;
+import java.util.Map;
 
 import falcon.com.friendly.resolver.CallLogResolver;
 import falcon.com.friendly.store.FriendContract;
@@ -34,12 +36,16 @@ public class NewFriendActivity extends Activity {
 
   private CallLogResolver callLogResolver;
 
+  private EditText frequencyView;
+
   @Override
   protected void onCreate(final Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     setContentView(R.layout.activity_new_friend);
 
     callLogResolver = new CallLogResolver(getContentResolver());
+
+    frequencyView = (EditText) findViewById(R.id.frequency);
 
     final Intent pickContactIntent =
       new Intent(Intent.ACTION_PICK, ContactsContract.Contacts.CONTENT_URI);
@@ -87,7 +93,16 @@ public class NewFriendActivity extends Activity {
    */
   public void saveAndFinish(final View view) {
     int result = RESULT_CANCELED;
-    if (contentValues != null) {
+
+    final long frequency = Long.parseLong(frequencyView.getText().toString());
+    if (contentValues != null && frequency > 0) {
+      contentValues.put(FriendContract.FriendEntry.FREQUENCY, frequency);
+
+      Log.d(T, "Values to be saved...");
+      for (final Map.Entry<String, Object> entry : contentValues.valueSet()) {
+        Log.d(T, entry.getKey() + ", " + entry.getValue().toString());
+      }
+
       if (saveFriend(contentValues)) {
         result = RESULT_OK;
       }

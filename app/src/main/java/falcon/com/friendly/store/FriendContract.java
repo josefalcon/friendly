@@ -30,10 +30,17 @@ public final class FriendContract {
     public static final String LOOKUP_KEY = "lookup_key";
 
     /**
-     * The date of the last contact with this friend, stored as the number of seconds since epoch.
+     * The date of the last contact with this friend, stored as the number of milliseconds since
+     * epoch.
      * <P>Type: INTEGER</P>
      */
     public static final String LAST_CONTACT = "last_contact";
+
+    /**
+     * The intended frequency of contact, stored in milliseconds.
+     * <P>Type: INTEGER</P>
+     */
+    public static final String FREQUENCY = "frequency";
   }
 
 }
