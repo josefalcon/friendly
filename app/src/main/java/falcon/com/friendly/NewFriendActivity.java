@@ -37,6 +37,14 @@ public class NewFriendActivity extends Activity {
     WEEKS(604800000L),
     MONTHS(2629740000L);
 
+    private static final String[] TIME_UNIT_STRINGS = new String[values().length];
+    static {
+      final TimeUnit[] values = values();
+      for (int i = 0; i < TIME_UNIT_STRINGS.length; i++) {
+        TIME_UNIT_STRINGS[i] = values[i].name();
+      }
+    }
+
     final long milliseconds;
 
     TimeUnit(final long milliseconds) {
@@ -47,13 +55,15 @@ public class NewFriendActivity extends Activity {
       return multiplier * milliseconds;
     }
 
-  }
+    static String[] stringValues() {
+      return TIME_UNIT_STRINGS;
+    }
 
-  private static final TimeUnit[] TIME_UNITS = TimeUnit.values();
-  private static final String[] TIME_UNIT_STRINGS = new String[TIME_UNITS.length];
-  static {
-    for (int i = 0; i < TIME_UNIT_STRINGS.length; i++) {
-      TIME_UNIT_STRINGS[i] = TIME_UNITS[i].name();
+    static TimeUnit getByIndex(final int index) {
+      if (index >= 0 && index < TIME_UNIT_STRINGS.length) {
+        return values()[index];
+      }
+      return null;
     }
   }
 
@@ -77,9 +87,10 @@ public class NewFriendActivity extends Activity {
     quantityPicker.setMinValue(1);
     quantityPicker.setMaxValue(60);
 
+    final String[] timeUnitStrings = TimeUnit.stringValues();
     timeUnitPicker.setMinValue(0);
-    timeUnitPicker.setMaxValue(TIME_UNITS.length - 1);
-    timeUnitPicker.setDisplayedValues(TIME_UNIT_STRINGS);
+    timeUnitPicker.setMaxValue(timeUnitStrings.length - 1);
+    timeUnitPicker.setDisplayedValues(timeUnitStrings);
     timeUnitPicker.setWrapSelectorWheel(false);
 
     final Intent pickContactIntent =
@@ -130,7 +141,7 @@ public class NewFriendActivity extends Activity {
     int result = RESULT_CANCELED;
 
     final int quantity = quantityPicker.getValue();
-    final TimeUnit timeUnit = TIME_UNITS[timeUnitPicker.getValue()];
+    final TimeUnit timeUnit = TimeUnit.getByIndex(timeUnitPicker.getValue());
     final long frequency = timeUnit.inMilliseconds(quantity);
     if (contentValues != null && frequency > 0) {
       contentValues.put(FriendContract.FriendEntry.FREQUENCY, frequency);
