@@ -11,13 +11,11 @@ import android.os.Bundle;
 import android.provider.ContactsContract;
 import android.telephony.PhoneNumberUtils;
 import android.util.Log;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
-import android.widget.EditText;
+import android.widget.NumberPicker;
 
-import java.util.Date;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import falcon.com.friendly.resolver.CallLogResolver;
 import falcon.com.friendly.store.FriendContract;
@@ -32,11 +30,40 @@ public class NewFriendActivity extends Activity {
 
   private static final int PICK_CONTACT_REQUEST = 1;
 
+  private static enum TimeUnit {
+    MINUTES(60000L),
+    HOURS(3600000L),
+    DAYS(86400000L),
+    WEEKS(604800000L),
+    MONTHS(2629740000L);
+
+    final long milliseconds;
+
+    TimeUnit(final long milliseconds) {
+      this.milliseconds = milliseconds;
+    }
+
+    long inMilliseconds(final int multiplier) {
+      return multiplier * milliseconds;
+    }
+
+  }
+
+  private static final TimeUnit[] TIME_UNITS = TimeUnit.values();
+  private static final String[] TIME_UNIT_STRINGS = new String[TIME_UNITS.length];
+  static {
+    for (int i = 0; i < TIME_UNIT_STRINGS.length; i++) {
+      TIME_UNIT_STRINGS[i] = TIME_UNITS[i].name();
+    }
+  }
+
   private ContentValues contentValues;
 
   private CallLogResolver callLogResolver;
 
-  private EditText frequencyView;
+  private NumberPicker quantityPicker;
+
+  private NumberPicker timeUnitPicker;
 
   @Override
   protected void onCreate(final Bundle savedInstanceState) {
@@ -44,8 +71,16 @@ public class NewFriendActivity extends Activity {
     setContentView(R.layout.activity_new_friend);
 
     callLogResolver = new CallLogResolver(getContentResolver());
+    quantityPicker = (NumberPicker) findViewById(R.id.quantity);
+    timeUnitPicker = (NumberPicker) findViewById(R.id.time_unit);
 
-    frequencyView = (EditText) findViewById(R.id.frequency);
+    quantityPicker.setMinValue(1);
+    quantityPicker.setMaxValue(60);
+
+    timeUnitPicker.setMinValue(0);
+    timeUnitPicker.setMaxValue(TIME_UNITS.length - 1);
+    timeUnitPicker.setDisplayedValues(TIME_UNIT_STRINGS);
+    timeUnitPicker.setWrapSelectorWheel(false);
 
     final Intent pickContactIntent =
       new Intent(Intent.ACTION_PICK, ContactsContract.Contacts.CONTENT_URI);
@@ -94,7 +129,9 @@ public class NewFriendActivity extends Activity {
   public void saveAndFinish(final View view) {
     int result = RESULT_CANCELED;
 
-    final long frequency = Long.parseLong(frequencyView.getText().toString());
+    final int quantity = quantityPicker.getValue();
+    final TimeUnit timeUnit = TIME_UNITS[timeUnitPicker.getValue()];
+    final long frequency = timeUnit.inMilliseconds(quantity);
     if (contentValues != null && frequency > 0) {
       contentValues.put(FriendContract.FriendEntry.FREQUENCY, frequency);
 
