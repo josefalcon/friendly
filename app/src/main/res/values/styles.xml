@@ -1,8 +1,26 @@
 <resources>
 
-    <!-- Base application theme. -->
+    <!-- Base application theme -->
     <style name="AppTheme" parent="android:Theme.Holo.Light.DarkActionBar">
-        <!-- Customize your theme here. -->
+        <!-- Sets up the ActionBar -->
+        <item name="android:actionBarStyle">@style/ActionBarStyle</item>
+        <!-- Removes the drop shadow underneath all ActionBar(s) -->
+        <item name="android:windowContentOverlay">@null</item>
+    </style>
+
+    <!-- Action bar style -->
+    <style name="ActionBarStyle" parent="android:Widget.Holo.Light.ActionBar.Solid">
+        <item name="android:background">@color/actionbar</item>
+        <item name="android:height">56dp</item>
+        <item name="android:icon">@android:color/transparent</item>
+        <item name="android:titleTextStyle">@style/ActionBarTitleText</item>
+    </style>
+
+    <!-- Action bar text style -->
+    <style name="ActionBarTitleText" parent="android:TextAppearance.Holo.Widget.ActionBar.Title">
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/white</item>
+        <item name="android:textSize">16sp</item>
     </style>
 
 </resources>
