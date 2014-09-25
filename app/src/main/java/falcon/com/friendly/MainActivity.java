@@ -3,14 +3,13 @@ package falcon.com.friendly;
 import android.app.Activity;
 import android.app.Fragment;
 import android.content.Intent;
-import android.database.ContentObserver;
-import android.net.Uri;
 import android.os.Bundle;
-import android.provider.CallLog;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
+
+import com.joanzapata.android.iconify.IconDrawable;
+import com.joanzapata.android.iconify.Iconify;
 
 import falcon.com.friendly.fragment.FriendFragment;
 
@@ -29,18 +28,25 @@ public class MainActivity extends Activity {
 
   @Override
   public boolean onCreateOptionsMenu(final Menu menu) {
-    // Inflate the menu; this adds items to the action bar if it is present.
     getMenuInflater().inflate(R.menu.main, menu);
+
+    menu.findItem(R.id.action_new_friend).setIcon(
+      new IconDrawable(this, Iconify.IconValue.fa_plus)
+        .colorRes(R.color.white)
+        .actionBarSize());
+
+    // hide the settings menu
+    menu.findItem(R.id.action_settings)
+      .setVisible(false);
+
     return true;
   }
 
   @Override
   public boolean onOptionsItemSelected(final MenuItem item) {
-    // Handle action bar item clicks here. The action bar will
-    // automatically handle clicks on the Home/Up button, so long
-    // as you specify a parent activity in AndroidManifest.xml.
     final int id = item.getItemId();
-    if (id == R.id.action_settings) {
+    if (id == R.id.action_new_friend) {
+      startNewFriendActivity();
       return true;
     }
     return super.onOptionsItemSelected(item);
@@ -54,7 +60,7 @@ public class MainActivity extends Activity {
     }
   }
 
-  public void startNewFriendActivity(final View view) {
+  private void startNewFriendActivity() {
     final Intent intent = new Intent(this, NewFriendActivity.class);
     startActivityForResult(intent, 1);
   }
