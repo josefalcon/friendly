@@ -18,6 +18,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
+import android.widget.IconTextView;
 import android.widget.ListView;
 import android.widget.SimpleCursorAdapter;
 import android.widget.TextView;
@@ -65,38 +66,38 @@ public class FriendFragment extends Fragment implements LoaderManager.LoaderCall
 
     listViewAdapter =
       new SimpleCursorAdapter(getActivity(),
-                              android.R.layout.simple_list_item_2,
+                              R.layout.friend_entry,
                               null,
                               new String[]{FriendEntry.NUMBER, FriendEntry.LAST_CONTACT},
-                              new int[]{android.R.id.text1, android.R.id.text2},
+                              new int[]{R.id.text1, R.id.text2},
                               0) {
         @Override
         public View getView(final int position, final View convertView, final ViewGroup parent) {
           final View view = super.getView(position, convertView, parent);
-          if (view != null) {
-            final Cursor cursor = getCursor();
-            if (cursor.moveToPosition(position)) {
-              final long lastContact = cursor.getLong(cursor.getColumnIndex(FriendEntry.LAST_CONTACT));
-              final long frequency = cursor.getLong(cursor.getColumnIndex(FriendEntry.FREQUENCY));
-              final long now = System.currentTimeMillis();
-              if (lastContact < 0 || lastContact + frequency <= now) {
-                view.setBackgroundColor(RED);
-              } else {
-                final float scale = (float) now / (lastContact + frequency);
-                Log.d(T, "scale: " + scale);
-                view.setBackgroundColor(getColorIndicator(scale));
-              }
+          final IconTextView frequencyIcon = (IconTextView) view.findViewById(R.id.frequency_icon);
+          final Cursor cursor = getCursor();
+          if (cursor.moveToPosition(position)) {
+            final long lastContact = cursor.getLong(cursor.getColumnIndex(FriendEntry.LAST_CONTACT));
+            final long frequency = cursor.getLong(cursor.getColumnIndex(FriendEntry.FREQUENCY));
+            final long now = System.currentTimeMillis();
+            if (lastContact < 0 || lastContact + frequency <= now) {
+              frequencyIcon.setTextColor(RED);
+            } else {
+              final float scale = (now - lastContact) / (float) frequency;
+              Log.d(T, "scale: " + scale);
+              frequencyIcon.setTextColor(getColorIndicator(scale));
             }
           }
           return view;
         }
       };
 
+
     listViewAdapter.setViewBinder(new SimpleCursorAdapter.ViewBinder() {
       public boolean setViewValue(final View view, final Cursor cursor, final int columnIndex) {
+        final TextView textView = (TextView) view;
         if (columnIndex == cursor.getColumnIndex(FriendEntry.LAST_CONTACT)) {
           final long lastContact = cursor.getLong(columnIndex);
-          final TextView textView = (TextView) view;
 
           final CharSequence text;
           if (lastContact < 0) {
@@ -108,6 +109,12 @@ public class FriendFragment extends Fragment implements LoaderManager.LoaderCall
           }
           textView.setText(text);
           return true;
+        } else if (columnIndex == cursor.getColumnIndex(FriendEntry.NUMBER)) {
+          final String name = getContactName(cursor);
+          if (name != null && !name.isEmpty()) {
+            textView.setText(name);
+            return true;
+          }
         }
         return false;
       }
@@ -149,6 +156,27 @@ public class FriendFragment extends Fragment implements LoaderManager.LoaderCall
    */
   public void refresh() {
     getLoaderManager().restartLoader(0, null, this);
+  }
+
+  private String getContactName(final Cursor cursor) {
+    final String lookup = cursor.getString(cursor.getColumnIndex(FriendEntry.LOOKUP_KEY));
+    final long contactId = cursor.getLong(cursor.getColumnIndex(FriendEntry.CONTACT_ID));
+
+    final Uri lookupUri = ContactsContract.Contacts.getLookupUri(contactId, lookup);
+    final Cursor query =
+      getActivity().getContentResolver().query(lookupUri,
+                                               new String[]{ContactsContract.Contacts.DISPLAY_NAME},
+                                               null, null, null);
+
+    try {
+      if (query.moveToFirst()) {
+        return query.getString(query.getColumnIndex(ContactsContract.Contacts.DISPLAY_NAME));
+      }
+    } finally {
+      query.close();
+    }
+
+    return null;
   }
 
   private static final int GREEN = Color.rgb(135, 184, 41);
