@@ -80,6 +80,8 @@ public class NewFriendActivity extends Activity {
     super.onCreate(savedInstanceState);
     setContentView(R.layout.activity_new_friend);
 
+    getActionBar().setDisplayHomeAsUpEnabled(true);
+
     callLogResolver = new CallLogResolver(getContentResolver());
     quantityPicker = (NumberPicker) findViewById(R.id.quantity);
     timeUnitPicker = (NumberPicker) findViewById(R.id.time_unit);

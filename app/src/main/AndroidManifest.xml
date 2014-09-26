@@ -21,7 +21,8 @@
         </activity>
         <activity
             android:name=".NewFriendActivity"
-            android:label="@string/title_activity_new_friend" >
+            android:label="@string/title_activity_new_friend"
+            android:parentActivityName=".MainActivity">
         </activity>
     </application>
 
