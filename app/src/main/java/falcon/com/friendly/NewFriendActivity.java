@@ -13,6 +13,9 @@ import android.telephony.PhoneNumberUtils;
 import android.util.Log;
 import android.view.View;
 import android.widget.NumberPicker;
+import android.widget.TextView;
+
+import org.w3c.dom.Text;
 
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -75,6 +78,10 @@ public class NewFriendActivity extends Activity {
 
   private NumberPicker timeUnitPicker;
 
+  private TextView contactName;
+
+  private TextView contactPhone;
+
   @Override
   protected void onCreate(final Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
@@ -85,6 +92,8 @@ public class NewFriendActivity extends Activity {
     callLogResolver = new CallLogResolver(getContentResolver());
     quantityPicker = (NumberPicker) findViewById(R.id.quantity);
     timeUnitPicker = (NumberPicker) findViewById(R.id.time_unit);
+    contactName = (TextView) findViewById(R.id.contact_name);
+    contactPhone = (TextView) findViewById(R.id.contact_phone);
 
     quantityPicker.setMinValue(1);
     quantityPicker.setMaxValue(60);
@@ -105,6 +114,7 @@ public class NewFriendActivity extends Activity {
     CONTACT_ID,
     LOOKUP_KEY,
     NUMBER,
+    DISPLAY_NAME
   };
 
   @Override
@@ -116,15 +126,19 @@ public class NewFriendActivity extends Activity {
         if (cursor.moveToFirst()) {
           final long contactId = cursor.getLong(cursor.getColumnIndex(CONTACT_ID));
           final String lookupKey = cursor.getString(cursor.getColumnIndex(LOOKUP_KEY));
-          final String phoneNumber =
-            cleanPhoneNumber(cursor.getString(cursor.getColumnIndex(NUMBER)));
-          final long lastContact = callLogResolver.getLastContact(phoneNumber);
+          final String rawNumber = cursor.getString(cursor.getColumnIndex(NUMBER));
+          final String displayName = cursor.getString(cursor.getColumnIndex(DISPLAY_NAME));
+          final String cleanPhoneNumber = cleanPhoneNumber(rawNumber);
+          final long lastContact = callLogResolver.getLastContact(cleanPhoneNumber);
 
           contentValues = new ContentValues();
           contentValues.put(FriendContract.FriendEntry.CONTACT_ID, contactId);
           contentValues.put(FriendContract.FriendEntry.LOOKUP_KEY, lookupKey);
-          contentValues.put(FriendContract.FriendEntry.NUMBER, phoneNumber);
+          contentValues.put(FriendContract.FriendEntry.NUMBER, cleanPhoneNumber);
           contentValues.put(FriendContract.FriendEntry.LAST_CONTACT, lastContact);
+
+          contactName.setText(displayName);
+          contactPhone.setText(rawNumber);
         }
       } finally {
         cursor.close();
