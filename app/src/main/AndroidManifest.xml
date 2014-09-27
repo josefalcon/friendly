@@ -24,6 +24,9 @@
             android:label="@string/title_activity_new_friend"
             android:parentActivityName=".MainActivity">
         </activity>
+        <service
+            android:name=".service.CallLogUpdateService"
+            android:exported="false"/>
     </application>
 
 </manifest>

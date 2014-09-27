@@ -12,6 +12,8 @@ import com.joanzapata.android.iconify.IconDrawable;
 import com.joanzapata.android.iconify.Iconify;
 
 import falcon.com.friendly.fragment.FriendFragment;
+import falcon.com.friendly.resolver.CallLogResolver;
+import falcon.com.friendly.service.CallLogUpdateService;
 
 
 public class MainActivity extends Activity {

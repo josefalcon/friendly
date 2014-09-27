@@ -4,6 +4,7 @@ package falcon.com.friendly.fragment;
 import android.app.LoaderManager;
 import android.content.ContentValues;
 import android.content.CursorLoader;
+import android.content.Intent;
 import android.content.Loader;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
@@ -25,6 +26,7 @@ import android.widget.TextView;
 
 import falcon.com.friendly.R;
 import falcon.com.friendly.resolver.CallLogResolver;
+import falcon.com.friendly.service.CallLogUpdateService;
 import falcon.com.friendly.store.FriendContract;
 import falcon.com.friendly.store.FriendlyDatabaseHelper;
 
@@ -50,6 +52,14 @@ public class FriendFragment extends Fragment implements LoaderManager.LoaderCall
 
     // start contact loader
     getLoaderManager().initLoader(0, null, this);
+  }
+
+  @Override
+  public void onStart() {
+    super.onStart();
+
+    final Intent intent = new Intent(getActivity(), CallLogUpdateService.class);
+    getActivity().startService(intent);
   }
 
   @Override
