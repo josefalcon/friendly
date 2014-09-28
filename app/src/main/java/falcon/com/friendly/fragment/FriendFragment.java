@@ -146,7 +146,11 @@ public class FriendFragment extends Fragment implements LoaderManager.LoaderCall
       public Cursor loadInBackground() {
         final SQLiteDatabase db =
           FriendlyDatabaseHelper.getInstance(getActivity()).getReadableDatabase();
-        return db.query(FriendEntry.TABLE, null, null, null, null, null, null);
+        final String query =
+          "SELECT *, max(last_contact) FROM friend GROUP BY contact_id, lookup_key "
+          + "ORDER BY strftime('%s','now') - (last_contact / 1000) DESC";
+
+        return db.rawQuery(query, null);
       }
     };
   }
