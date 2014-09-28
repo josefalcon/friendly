@@ -7,13 +7,12 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.Toast;
 
 import com.joanzapata.android.iconify.IconDrawable;
 import com.joanzapata.android.iconify.Iconify;
 
 import falcon.com.friendly.fragment.FriendFragment;
-import falcon.com.friendly.resolver.CallLogResolver;
-import falcon.com.friendly.service.CallLogUpdateService;
 
 
 public class MainActivity extends Activity {
@@ -73,6 +72,11 @@ public class MainActivity extends Activity {
                                   final Intent data) {
     if (resultCode == RESULT_OK && friendFragment != null) {
       Log.d(T, "NewFriendActivity added a new friend. Updating view...");
+      String name = (String) data.getExtras().get("name");
+      if (name == null || name.isEmpty()) {
+        name = "Contact";
+      }
+      Toast.makeText(this, name + " added!", Toast.LENGTH_SHORT).show();
       friendFragment.refresh();
     }
   }

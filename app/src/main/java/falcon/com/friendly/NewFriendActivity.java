@@ -70,6 +70,8 @@ public class NewFriendActivity extends Activity {
     }
   }
 
+  private boolean contactPicked;
+
   private ContentValues contentValues;
 
   private CallLogResolver callLogResolver;
@@ -82,11 +84,12 @@ public class NewFriendActivity extends Activity {
 
   private TextView contactPhone;
 
+  private TextView contactPhoneType;
+
   @Override
   protected void onCreate(final Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     setContentView(R.layout.activity_new_friend);
-
     getActionBar().setDisplayHomeAsUpEnabled(true);
 
     callLogResolver = new CallLogResolver(getContentResolver());
@@ -94,6 +97,7 @@ public class NewFriendActivity extends Activity {
     timeUnitPicker = (NumberPicker) findViewById(R.id.time_unit);
     contactName = (TextView) findViewById(R.id.contact_name);
     contactPhone = (TextView) findViewById(R.id.contact_phone);
+    contactPhoneType = (TextView) findViewById(R.id.contact_phone_type);
 
     quantityPicker.setMinValue(1);
     quantityPicker.setMaxValue(60);
@@ -104,22 +108,50 @@ public class NewFriendActivity extends Activity {
     timeUnitPicker.setDisplayedValues(timeUnitStrings);
     timeUnitPicker.setWrapSelectorWheel(false);
 
-    final Intent pickContactIntent =
-      new Intent(Intent.ACTION_PICK, ContactsContract.Contacts.CONTENT_URI);
-    pickContactIntent.setType(CONTENT_TYPE);
-    startActivityForResult(pickContactIntent, PICK_CONTACT_REQUEST);
+    if (savedInstanceState != null) {
+      contactPicked = savedInstanceState.getBoolean("contactPicked");
+      contactName.setText(savedInstanceState.getString("contactName"));
+      contactPhone.setText(savedInstanceState.getString("contactPhone"));
+      contactPhoneType.setText(savedInstanceState.getString("contactPhoneType"));
+      quantityPicker.setValue(savedInstanceState.getInt("quantityPicker"));
+      timeUnitPicker.setValue(savedInstanceState.getInt("timeUnitPicker"));
+      contentValues = savedInstanceState.getParcelable("contentValues");
+    }
+
+    if (!contactPicked) {
+      final Intent pickContactIntent =
+        new Intent(Intent.ACTION_PICK, ContactsContract.Contacts.CONTENT_URI);
+      pickContactIntent.setType(CONTENT_TYPE);
+      startActivityForResult(pickContactIntent, PICK_CONTACT_REQUEST);
+    }
+  }
+
+  @Override
+  protected void onSaveInstanceState(final Bundle outState) {
+    super.onSaveInstanceState(outState);
+    outState.putBoolean("contactPicked", contactPicked);
+    if (contactPicked) {
+      outState.putString("contactName", contactName.getText().toString());
+      outState.putString("contactPhone", contactPhone.getText().toString());
+      outState.putString("contactPhoneType", contactPhoneType.getText().toString());
+      outState.putInt("quantityPicker", quantityPicker.getValue());
+      outState.putInt("timeUnitPicker", timeUnitPicker.getValue());
+      outState.putParcelable("contentValues", contentValues);
+    }
   }
 
   public static final String[] PROJECTION = new String[] {
     CONTACT_ID,
     LOOKUP_KEY,
     NUMBER,
-    DISPLAY_NAME
+    DISPLAY_NAME,
+    TYPE
   };
 
   @Override
   protected void onActivityResult(final int requestCode, final int resultCode, final Intent data) {
     if (requestCode == PICK_CONTACT_REQUEST && resultCode == RESULT_OK) {
+      contactPicked = true;
       final Uri contactUri = data.getData();
       final Cursor cursor = getContentResolver().query(contactUri, PROJECTION, null, null, null);
       try {
@@ -128,6 +160,12 @@ public class NewFriendActivity extends Activity {
           final String lookupKey = cursor.getString(cursor.getColumnIndex(LOOKUP_KEY));
           final String rawNumber = cursor.getString(cursor.getColumnIndex(NUMBER));
           final String displayName = cursor.getString(cursor.getColumnIndex(DISPLAY_NAME));
+
+          final int phoneType = cursor.getInt(cursor.getColumnIndex(TYPE));
+          final String phoneTypeString =
+            getResources()
+              .getString(ContactsContract.CommonDataKinds.Phone.getTypeLabelResource(phoneType));
+
           final String cleanPhoneNumber = cleanPhoneNumber(rawNumber);
           final long lastContact = callLogResolver.getLastContact(cleanPhoneNumber);
 
@@ -138,7 +176,8 @@ public class NewFriendActivity extends Activity {
           contentValues.put(FriendContract.FriendEntry.LAST_CONTACT, lastContact);
 
           contactName.setText(displayName);
-          contactPhone.setText(rawNumber);
+          contactPhone.setText(PhoneNumberUtils.formatNumber(rawNumber));
+          contactPhoneType.setText(phoneTypeString + " ");
         }
       } finally {
         cursor.close();
@@ -155,6 +194,7 @@ public class NewFriendActivity extends Activity {
    */
   public void saveAndFinish(final View view) {
     int result = RESULT_CANCELED;
+    Intent intent = null;
 
     final int quantity = quantityPicker.getValue();
     final TimeUnit timeUnit = TimeUnit.getByIndex(timeUnitPicker.getValue());
@@ -169,9 +209,12 @@ public class NewFriendActivity extends Activity {
 
       if (saveFriend(contentValues)) {
         result = RESULT_OK;
+        intent = new Intent();
+        intent.putExtra("name", contactName.getText());
       }
     }
-    setResult(result);
+
+    setResult(result, intent);
     finish();
   }
 
