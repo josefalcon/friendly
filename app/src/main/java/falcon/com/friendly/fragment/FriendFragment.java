@@ -148,7 +148,7 @@ public class FriendFragment extends Fragment implements LoaderManager.LoaderCall
           FriendlyDatabaseHelper.getInstance(getActivity()).getReadableDatabase();
         final String query =
           "SELECT *, max(last_contact) FROM friend GROUP BY contact_id, lookup_key "
-          + "ORDER BY strftime('%s','now') - (last_contact / 1000) DESC";
+          + "ORDER BY (strftime('%s','now') - (last_contact / 1000)) / (1.0 * frequency) DESC";
 
         return db.rawQuery(query, null);
       }
