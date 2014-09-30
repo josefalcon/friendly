@@ -50,50 +50,33 @@
         android:src="@drawable/shape_line"
         android:layout_below="@+id/contact_details"/>
 
-    <LinearLayout android:id="@+id/frequency_header"
-                  android:layout_width="wrap_content"
-                  android:layout_height="wrap_content"
-                  android:layout_below="@id/bar"
-                  android:layout_marginTop="18dp"
-                  android:layout_marginBottom="8dp">
+    <LinearLayout
+        android:id="@+id/interval"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/bar">
 
         <IconTextView
             android:text="{fa-clock-o}"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textAppearance="?android:attr/textAppearanceMedium"
-            android:layout_marginRight="8dp"/>
+            android:textAppearance="?android:attr/textAppearanceMedium"/>
 
-        <TextView
+        <Spinner
+            android:id="@+id/quantity"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceMedium"/>
+
+        <Space android:layout_width="1dp"
+               android:layout_height="0dp"/>
+
+        <Spinner
+            android:id="@+id/time_unit"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textAppearance="?android:attr/textAppearanceMedium"
-            android:text="Reminder"
-            android:id="@+id/textView"/>
-
-    </LinearLayout>
-
-    <LinearLayout
-        android:id="@+id/interval"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/frequency_header">
-
-        <NumberPicker
-            android:id="@+id/quantity"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight=".4"/>
-
-        <Space android:layout_width="0dp"
-               android:layout_height="0dp"
-               android:layout_weight=".05" />
-
-        <NumberPicker
-            android:id="@+id/time_unit"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight=".4"/>
+            />
     </LinearLayout>
 
     <Button

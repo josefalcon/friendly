@@ -12,13 +12,12 @@ import android.provider.ContactsContract;
 import android.telephony.PhoneNumberUtils;
 import android.util.Log;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.NumberPicker;
+import android.widget.Spinner;
 import android.widget.TextView;
 
-import org.w3c.dom.Text;
-
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import falcon.com.friendly.resolver.CallLogResolver;
 import falcon.com.friendly.store.FriendContract;
@@ -76,9 +75,9 @@ public class NewFriendActivity extends Activity {
 
   private CallLogResolver callLogResolver;
 
-  private NumberPicker quantityPicker;
+  private Spinner quantitySpinner;
 
-  private NumberPicker timeUnitPicker;
+  private Spinner timeUnitSpinner;
 
   private TextView contactName;
 
@@ -93,28 +92,35 @@ public class NewFriendActivity extends Activity {
     getActionBar().setDisplayHomeAsUpEnabled(true);
 
     callLogResolver = new CallLogResolver(getContentResolver());
-    quantityPicker = (NumberPicker) findViewById(R.id.quantity);
-    timeUnitPicker = (NumberPicker) findViewById(R.id.time_unit);
+    quantitySpinner = (Spinner) findViewById(R.id.quantity);
+    timeUnitSpinner = (Spinner) findViewById(R.id.time_unit);
     contactName = (TextView) findViewById(R.id.contact_name);
     contactPhone = (TextView) findViewById(R.id.contact_phone);
     contactPhoneType = (TextView) findViewById(R.id.contact_phone_type);
 
-    quantityPicker.setMinValue(1);
-    quantityPicker.setMaxValue(60);
+    final String[] quantityStrings = new String[] {"1", "7", "14", "28"};
+    final ArrayAdapter<CharSequence> quantityAdapter =
+      new ArrayAdapter<CharSequence>(this,
+                                     android.R.layout.simple_spinner_item,
+                                     quantityStrings);
+    quantityAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+    quantitySpinner.setAdapter(quantityAdapter);
 
     final String[] timeUnitStrings = TimeUnit.stringValues();
-    timeUnitPicker.setMinValue(0);
-    timeUnitPicker.setMaxValue(timeUnitStrings.length - 1);
-    timeUnitPicker.setDisplayedValues(timeUnitStrings);
-    timeUnitPicker.setWrapSelectorWheel(false);
+    final ArrayAdapter<CharSequence> timeUnitAdapter =
+      new ArrayAdapter<CharSequence>(this,
+                                     android.R.layout.simple_spinner_item,
+                                     timeUnitStrings);
+    timeUnitAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+    timeUnitSpinner.setAdapter(timeUnitAdapter);
 
     if (savedInstanceState != null) {
       contactPicked = savedInstanceState.getBoolean("contactPicked");
       contactName.setText(savedInstanceState.getString("contactName"));
       contactPhone.setText(savedInstanceState.getString("contactPhone"));
       contactPhoneType.setText(savedInstanceState.getString("contactPhoneType"));
-      quantityPicker.setValue(savedInstanceState.getInt("quantityPicker"));
-      timeUnitPicker.setValue(savedInstanceState.getInt("timeUnitPicker"));
+      quantitySpinner.setSelection(savedInstanceState.getInt("quantitySpinner"));
+      timeUnitSpinner.setSelection(savedInstanceState.getInt("timeUnitSpinner"));
       contentValues = savedInstanceState.getParcelable("contentValues");
     }
 
@@ -134,8 +140,8 @@ public class NewFriendActivity extends Activity {
       outState.putString("contactName", contactName.getText().toString());
       outState.putString("contactPhone", contactPhone.getText().toString());
       outState.putString("contactPhoneType", contactPhoneType.getText().toString());
-      outState.putInt("quantityPicker", quantityPicker.getValue());
-      outState.putInt("timeUnitPicker", timeUnitPicker.getValue());
+      outState.putInt("quantitySpinner", quantitySpinner.getSelectedItemPosition());
+      outState.putInt("timeUnitSpinner", timeUnitSpinner.getSelectedItemPosition());
       outState.putParcelable("contentValues", contentValues);
     }
   }
@@ -196,8 +202,8 @@ public class NewFriendActivity extends Activity {
     int result = RESULT_CANCELED;
     Intent intent = null;
 
-    final int quantity = quantityPicker.getValue();
-    final TimeUnit timeUnit = TimeUnit.getByIndex(timeUnitPicker.getValue());
+    final int quantity = Integer.parseInt((String) quantitySpinner.getSelectedItem());
+    final TimeUnit timeUnit = TimeUnit.getByIndex(timeUnitSpinner.getSelectedItemPosition());
     final long frequency = timeUnit.inMilliseconds(quantity);
     if (contentValues != null && frequency > 0) {
       contentValues.put(FriendContract.FriendEntry.FREQUENCY, frequency);
