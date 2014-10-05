@@ -1,9 +1,15 @@
 package falcon.com.friendly;
 
 import android.app.Activity;
+import android.app.DialogFragment;
 import android.app.Fragment;
+import android.content.ContentValues;
 import android.content.Intent;
+import android.database.SQLException;
+import android.database.sqlite.SQLiteDatabase;
+import android.net.Uri;
 import android.os.Bundle;
+import android.provider.ContactsContract;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -12,19 +18,37 @@ import android.widget.Toast;
 import com.joanzapata.android.iconify.IconDrawable;
 import com.joanzapata.android.iconify.Iconify;
 
-import falcon.com.friendly.fragment.FriendFragment;
+import java.util.Map;
 
+import falcon.com.friendly.dialog.FriendDialog;
+import falcon.com.friendly.dialog.FriendDialogListener;
+import falcon.com.friendly.fragment.FriendListFragment;
+import falcon.com.friendly.resolver.CallLogResolver;
+import falcon.com.friendly.resolver.ContactResolver;
+import falcon.com.friendly.store.FriendContract;
+import falcon.com.friendly.store.FriendlyDatabaseHelper;
 
-public class MainActivity extends Activity {
+import static android.provider.ContactsContract.CommonDataKinds.Phone.CONTENT_TYPE;
+import static android.provider.ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME;
+import static android.provider.ContactsContract.CommonDataKinds.Phone.NUMBER;
+
+public class MainActivity extends Activity implements FriendDialogListener {
 
   private static final String T = "MainActivity";
 
-  private FriendFragment friendFragment;
+  private FriendListFragment friendListFragment;
+
+  private ContactResolver contactResolver;
+
+  private CallLogResolver callLogResolver;
 
   @Override
   protected void onCreate(final Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     setContentView(R.layout.activity_main);
+
+    contactResolver = new ContactResolver(getContentResolver());
+    callLogResolver = new CallLogResolver(getContentResolver());
   }
 
   @Override
@@ -47,7 +71,7 @@ public class MainActivity extends Activity {
   public boolean onOptionsItemSelected(final MenuItem item) {
     final int id = item.getItemId();
     if (id == R.id.action_new_friend) {
-      startNewFriendActivity();
+      showContactPicker();
       return true;
     }
     return super.onOptionsItemSelected(item);
@@ -56,28 +80,83 @@ public class MainActivity extends Activity {
   @Override
   public void onAttachFragment(final Fragment fragment) {
     super.onAttachFragment(fragment);
-    if (fragment instanceof FriendFragment) {
-      friendFragment = (FriendFragment) fragment;
+    if (fragment instanceof FriendListFragment) {
+      friendListFragment = (FriendListFragment) fragment;
     }
   }
 
-  private void startNewFriendActivity() {
-    final Intent intent = new Intent(this, NewFriendActivity.class);
-    startActivityForResult(intent, 1);
+  private static final int PICK_CONTACT_REQUEST = 1;
+
+  /**
+   * Shows the contact picker as the first step of adding a new friend.
+   */
+  private void showContactPicker() {
+    final Intent pickContactIntent =
+      new Intent(Intent.ACTION_PICK, ContactsContract.Contacts.CONTENT_URI);
+    pickContactIntent.setType(CONTENT_TYPE);
+    startActivityForResult(pickContactIntent, PICK_CONTACT_REQUEST);
   }
 
   @Override
   protected void onActivityResult(final int requestCode,
                                   final int resultCode,
                                   final Intent data) {
-    if (resultCode == RESULT_OK && friendFragment != null) {
-      Log.d(T, "NewFriendActivity added a new friend. Updating view...");
-      String name = (String) data.getExtras().get("name");
+    if (requestCode == PICK_CONTACT_REQUEST && resultCode == RESULT_OK) {
+      final Uri contactUri = data.getData();
+      final Bundle contact = contactResolver.getContact(contactUri);
+
+      final long lastContact = callLogResolver.getLastContact(contact.getString(NUMBER));
+      contact.putLong(FriendContract.FriendEntry.LAST_CONTACT, lastContact);
+
+      final FriendDialog friendDialog = new FriendDialog();
+      friendDialog.setArguments(contact);
+      friendDialog.show(getFragmentManager(), "FriendDialog");
+    }
+  }
+
+  @Override
+  public void onDialogPositiveClick(final DialogFragment dialog) {
+    Log.d(T, "Positive FriendDialog click");
+    final Bundle contact = dialog.getArguments();
+    final ContentValues contentValues = contactResolver.getFriendContentValues(contact);
+    if (saveFriend(contentValues)) {
+      Log.d(T, "Saved friend");
+      String name = contact.getString(DISPLAY_NAME);
       if (name == null || name.isEmpty()) {
         name = "Contact";
       }
-      Toast.makeText(this, name + " added!", Toast.LENGTH_SHORT).show();
-      friendFragment.refresh();
+      Toast.makeText(this, name + " saved!", Toast.LENGTH_SHORT).show();
+      friendListFragment.refresh();
+    } else {
+      // TODO JF!
     }
+  }
+
+  @Override
+  public void onDialogNegativeClick(final DialogFragment dialog) {
+    Log.d(T, "Cancelling FriendDialog");
+  }
+
+  /**
+   * Persists the given ContentValues to the Friend database table.
+   *
+   * @param contentValues the ContentValues representing a Friend.
+   */
+  private boolean saveFriend(final ContentValues contentValues) {
+    Log.d(T, "Saving friend...");
+    final FriendlyDatabaseHelper helper = FriendlyDatabaseHelper.getInstance(this);
+    final SQLiteDatabase db = helper.getWritableDatabase();
+    try {
+
+      for (Map.Entry<String, Object> e : contentValues.valueSet()) {
+        Log.d(T, e.getKey() + " : " + e.getValue());
+      }
+
+      final long id = db.replaceOrThrow(FriendContract.FriendEntry.TABLE, null, contentValues);
+      return id != -1;
+    } catch (final SQLException e) {
+      Log.d(T, "Ignoring duplicate friend...");
+    }
+    return false;
   }
 }

@@ -8,7 +8,7 @@
     <fragment android:layout_width="match_parent"
               android:layout_height="0dp"
               android:layout_weight=".8"
-              android:name="falcon.com.friendly.fragment.FriendFragment"
+              android:name="falcon.com.friendly.fragment.FriendListFragment"
               android:id="@+id/fragment2"/>
 
 </LinearLayout>

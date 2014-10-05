@@ -4,11 +4,11 @@ import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
-import static falcon.com.friendly.store.FriendContract.*;
+import static falcon.com.friendly.store.FriendContract.FriendEntry;
 
 public class FriendlyDatabaseHelper extends SQLiteOpenHelper {
 
-  public static final int DATABASE_VERSION = 9;
+  public static final int DATABASE_VERSION = 10;
   public static final String DATABASE_NAME = "Friendly";
 
   private static final String CREATE_FRIEND_ENTRY_TABLE_SQL =
@@ -16,6 +16,7 @@ public class FriendlyDatabaseHelper extends SQLiteOpenHelper {
     + FriendEntry.TABLE + " ("
     + FriendEntry._ID + " INTEGER PRIMARY KEY, "
     + FriendEntry.NUMBER + " TEXT, "
+    + FriendEntry.TYPE + " INTEGER, "
     + FriendEntry.CONTACT_ID + " INTEGER, "
     + FriendEntry.LOOKUP_KEY + " TEXT, "
     + FriendEntry.LAST_CONTACT + " INTEGER, "

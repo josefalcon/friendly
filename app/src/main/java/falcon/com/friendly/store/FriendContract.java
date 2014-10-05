@@ -18,6 +18,12 @@ public final class FriendContract {
     public static final String NUMBER = "number";
 
     /**
+     * The phone type of the phone number.
+     * <P>Type: INTEGER</P>
+     */
+    public static final String TYPE = "type";
+
+    /**
      * The contact id associated with this friend.
      * <P>Type: INTEGER</P>
      */

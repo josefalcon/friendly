@@ -3,4 +3,6 @@
     <color name="white">#ffffff</color>
     <color name="actionbar">#76658B</color>
     <color name="gray">#ff747474</color>
+    <color name="dark_gray">#ff686868</color>
+    <color name="light_gray">#ffdddddd</color>
 </resources>

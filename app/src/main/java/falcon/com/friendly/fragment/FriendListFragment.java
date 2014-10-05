@@ -25,7 +25,11 @@ import android.widget.SimpleCursorAdapter;
 import android.widget.TextView;
 
 import falcon.com.friendly.R;
+import falcon.com.friendly.TimeUnit;
+import falcon.com.friendly.Util;
+import falcon.com.friendly.dialog.FriendDialog;
 import falcon.com.friendly.resolver.CallLogResolver;
+import falcon.com.friendly.resolver.ContactResolver;
 import falcon.com.friendly.service.CallLogUpdateService;
 import falcon.com.friendly.store.FriendContract;
 import falcon.com.friendly.store.FriendlyDatabaseHelper;
@@ -35,7 +39,7 @@ import static falcon.com.friendly.store.FriendContract.*;
 /**
  * A simple {@link Fragment} subclass.
  */
-public class FriendFragment extends Fragment implements LoaderManager.LoaderCallbacks<Cursor>{
+public class FriendListFragment extends Fragment implements LoaderManager.LoaderCallbacks<Cursor>{
 
   private static final String T = "FriendFragment";
 
@@ -43,7 +47,9 @@ public class FriendFragment extends Fragment implements LoaderManager.LoaderCall
 
   private SimpleCursorAdapter listViewAdapter;
 
-  public FriendFragment() {
+  private ContactResolver contactResolver;
+
+  public FriendListFragment() {
   }
 
   @Override
@@ -52,6 +58,8 @@ public class FriendFragment extends Fragment implements LoaderManager.LoaderCall
 
     // start contact loader
     getLoaderManager().initLoader(0, null, this);
+
+    this.contactResolver = new ContactResolver(getActivity().getContentResolver());
   }
 
   @Override
@@ -108,15 +116,7 @@ public class FriendFragment extends Fragment implements LoaderManager.LoaderCall
         final TextView textView = (TextView) view;
         if (columnIndex == cursor.getColumnIndex(FriendEntry.LAST_CONTACT)) {
           final long lastContact = cursor.getLong(columnIndex);
-
-          final CharSequence text;
-          if (lastContact < 0) {
-            text = "too long ago!";
-          } else {
-            text = DateUtils.getRelativeTimeSpanString(lastContact,
-                                                       System.currentTimeMillis(),
-                                                       DateUtils.MINUTE_IN_MILLIS);
-          }
+          final CharSequence text = Util.getRelativeTime(lastContact, "too long ago!");
           textView.setText(text);
           return true;
         } else if (columnIndex == cursor.getColumnIndex(FriendEntry.NUMBER)) {
@@ -134,7 +134,27 @@ public class FriendFragment extends Fragment implements LoaderManager.LoaderCall
     listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
       @Override
       public void onItemClick(final AdapterView<?> parent, final View view, final int position, final long id) {
-        Log.d("FriendFragment", "position: " + position);
+        final Cursor cursor = listViewAdapter.getCursor();
+        if (cursor.moveToPosition(position)) {
+          final long contactId = cursor.getLong(cursor.getColumnIndex(FriendEntry.CONTACT_ID));
+          final String lookupKey = cursor.getString(cursor.getColumnIndex(FriendEntry.LOOKUP_KEY));
+          final int type = cursor.getInt(cursor.getColumnIndex(FriendEntry.TYPE));
+          final long lastContact = cursor.getLong(cursor.getColumnIndex(FriendEntry.LAST_CONTACT));
+          final long frequency = cursor.getLong(cursor.getColumnIndex(FriendEntry.FREQUENCY));
+
+          final Bundle contact = contactResolver.getContact(contactId, lookupKey, type);
+          contact.putLong(FriendEntry.CONTACT_ID, contactId);
+          contact.putString(FriendEntry.LOOKUP_KEY, lookupKey);
+          contact.putInt(FriendEntry.TYPE, type);
+          contact.putLong(FriendEntry.LAST_CONTACT, lastContact);
+          contact.putLong(FriendEntry.FREQUENCY, frequency);
+
+          Log.d(T, contact.toString());
+
+          final FriendDialog friendDialog = new FriendDialog();
+          friendDialog.setArguments(contact);
+          friendDialog.show(getFragmentManager(), "FriendDialog");
+        }
       }
     });
   }
@@ -214,4 +234,5 @@ public class FriendFragment extends Fragment implements LoaderManager.LoaderCall
     }
     return color;
   }
+
 }
