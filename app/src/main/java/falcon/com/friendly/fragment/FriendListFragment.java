@@ -1,9 +1,11 @@
 package falcon.com.friendly.fragment;
 
 
+import android.app.AlertDialog;
 import android.app.LoaderManager;
 import android.content.ContentValues;
 import android.content.CursorLoader;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.Loader;
 import android.database.Cursor;
@@ -19,10 +21,15 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
+import android.widget.IconButton;
 import android.widget.IconTextView;
 import android.widget.ListView;
 import android.widget.SimpleCursorAdapter;
 import android.widget.TextView;
+import android.widget.Toast;
+
+import com.fortysevendeg.swipelistview.BaseSwipeListViewListener;
+import com.fortysevendeg.swipelistview.SwipeListView;
 
 import falcon.com.friendly.R;
 import falcon.com.friendly.TimeUnit;
@@ -43,7 +50,7 @@ public class FriendListFragment extends Fragment implements LoaderManager.Loader
 
   private static final String T = "FriendFragment";
 
-  private ListView listView;
+  private SwipeListView listView;
 
   private SimpleCursorAdapter listViewAdapter;
 
@@ -55,6 +62,10 @@ public class FriendListFragment extends Fragment implements LoaderManager.Loader
   @Override
   public void onCreate(final Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
+
+    GREEN = getResources().getColor(R.color.green);
+    RED = getResources().getColor(R.color.red);
+    ORANGE = getResources().getColor(R.color.orange);
 
     // start contact loader
     getLoaderManager().initLoader(0, null, this);
@@ -80,11 +91,11 @@ public class FriendListFragment extends Fragment implements LoaderManager.Loader
   @Override
   public void onActivityCreated(final Bundle savedInstanceState) {
     super.onActivityCreated(savedInstanceState);
-    listView = (ListView) getActivity().findViewById(R.id.friendListView);
+    listView = (SwipeListView) getActivity().findViewById(R.id.friendListView);
 
     listViewAdapter =
       new SimpleCursorAdapter(getActivity(),
-                              R.layout.friend_entry,
+                              R.layout.friend_row,
                               null,
                               new String[]{FriendEntry.NUMBER, FriendEntry.LAST_CONTACT},
                               new int[]{R.id.text1, R.id.text2},
@@ -93,6 +104,26 @@ public class FriendListFragment extends Fragment implements LoaderManager.Loader
         public View getView(final int position, final View convertView, final ViewGroup parent) {
           final View view = super.getView(position, convertView, parent);
           final IconTextView frequencyIcon = (IconTextView) view.findViewById(R.id.frequency_icon);
+          final IconButton deleteButton = (IconButton) view.findViewById(R.id.delete_button);
+
+          deleteButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(final View v) {
+              final Cursor cursor = getCursor();
+              if (cursor.moveToPosition(position)) {
+                String name =
+                  ((TextView) view.findViewById(R.id.text1)).getText().toString();
+                if (deleteFriend(cursor.getLong(cursor.getColumnIndex(FriendEntry._ID)))) {
+                  listView.closeOpenedItems();
+                  if (name == null || name.isEmpty()) {
+                    name = "Contact";
+                  }
+                  Toast.makeText(getActivity(), name + " deleted.", Toast.LENGTH_SHORT).show();
+                }
+              }
+            }
+          });
+
           final Cursor cursor = getCursor();
           if (cursor.moveToPosition(position)) {
             final long lastContact = cursor.getLong(cursor.getColumnIndex(FriendEntry.LAST_CONTACT));
@@ -102,14 +133,12 @@ public class FriendListFragment extends Fragment implements LoaderManager.Loader
               frequencyIcon.setTextColor(RED);
             } else {
               final float scale = (now - lastContact) / (float) frequency;
-              Log.d(T, "scale: " + scale);
               frequencyIcon.setTextColor(getColorIndicator(scale));
             }
           }
           return view;
         }
       };
-
 
     listViewAdapter.setViewBinder(new SimpleCursorAdapter.ViewBinder() {
       public boolean setViewValue(final View view, final Cursor cursor, final int columnIndex) {
@@ -131,9 +160,36 @@ public class FriendListFragment extends Fragment implements LoaderManager.Loader
     });
 
     listView.setAdapter(listViewAdapter);
-    listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+    listView.setSwipeListViewListener(new BaseSwipeListViewListener() {
       @Override
-      public void onItemClick(final AdapterView<?> parent, final View view, final int position, final long id) {
+      public void onOpened(final int position, final boolean toRight) {
+      }
+
+      @Override
+      public void onClosed(final int position, final boolean fromRight) {
+      }
+
+      @Override
+      public void onListChanged() {
+      }
+
+      @Override
+      public void onMove(final int position, final float x) {
+      }
+
+      @Override
+      public void onStartOpen(final int position, final int action, final boolean right) {
+        Log.d("swipe", String.format("onStartOpen %d - action %d", position, action));
+      }
+
+      @Override
+      public void onStartClose(final int position, final boolean right) {
+        Log.d("swipe", String.format("onStartClose %d", position));
+      }
+
+      @Override
+      public void onClickFrontView(final int position) {
+        Log.d("swipe", String.format("onClickFrontView %d", position));
         final Cursor cursor = listViewAdapter.getCursor();
         if (cursor.moveToPosition(position)) {
           final long contactId = cursor.getLong(cursor.getColumnIndex(FriendEntry.CONTACT_ID));
@@ -156,7 +212,19 @@ public class FriendListFragment extends Fragment implements LoaderManager.Loader
           friendDialog.show(getFragmentManager(), "FriendDialog");
         }
       }
+
+      @Override
+      public void onClickBackView(final int position) {
+        Log.d("swipe", String.format("onClickBackView %d", position));
+      }
+
+      @Override
+      public void onDismiss(final int[] reverseSortedPositions) {
+        Log.d("swipe", "onDismiss");
+      }
+
     });
+
   }
 
   @Override
@@ -185,6 +253,18 @@ public class FriendListFragment extends Fragment implements LoaderManager.Loader
     listViewAdapter.changeCursor(null);
   }
 
+  private boolean deleteFriend(final long id) {
+    final FriendlyDatabaseHelper databaseHelper =
+      FriendlyDatabaseHelper.getInstance(getActivity());
+    final SQLiteDatabase db = databaseHelper.getWritableDatabase();
+    final int result =
+      db.delete(FriendEntry.TABLE, FriendEntry._ID + " = ?", new String[] { String.valueOf(id) });
+    if (result > 0) {
+      refresh();
+      return true;
+    }
+    return false;
+  }
   /**
    * Refreshes the list view associated with this fragment.
    */
@@ -213,11 +293,11 @@ public class FriendListFragment extends Fragment implements LoaderManager.Loader
     return null;
   }
 
-  private static final int GREEN = Color.rgb(135, 184, 41);
+  private static int GREEN;
 
-  private static final int ORANGE = Color.rgb(255, 183, 0);
+  private static int ORANGE;
 
-  private static final int RED = Color.rgb(234, 54, 31);
+  private static int RED;
 
   /**
    * Returns a color as an indication of the given scale.

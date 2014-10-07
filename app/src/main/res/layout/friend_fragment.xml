@@ -4,10 +4,18 @@
     android:layout_height="match_parent"
     tools:context="falcon.com.friendly.fragment.FriendListFragment">
 
-    <ListView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+    <com.fortysevendeg.swipelistview.SwipeListView
+        xmlns:swipe="http://schemas.android.com/apk/res-auto"
         android:id="@+id/friendListView"
-        android:layout_gravity="start|top"/>
+        android:listSelector="#00000000"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        swipe:swipeFrontView="@+id/front"
+        swipe:swipeBackView="@+id/back"
+        swipe:swipeActionRight="reveal"
+        swipe:swipeMode="right"
+        swipe:swipeCloseAllItemsWhenMoveList="true"
+        swipe:swipeOpenOnLongPress="false"
+        />
 
 </FrameLayout>
