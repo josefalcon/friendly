@@ -118,7 +118,7 @@ public class FriendListFragment extends Fragment implements LoaderManager.Loader
                   if (name == null || name.isEmpty()) {
                     name = "Contact";
                   }
-                  Toast.makeText(getActivity(), name + " deleted.", Toast.LENGTH_SHORT).show();
+                  Toast.makeText(getActivity(), name + " deleted", Toast.LENGTH_SHORT).show();
                 }
               }
             }

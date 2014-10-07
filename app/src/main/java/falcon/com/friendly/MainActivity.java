@@ -125,7 +125,7 @@ public class MainActivity extends Activity implements FriendDialogListener {
       if (name == null || name.isEmpty()) {
         name = "Contact";
       }
-      Toast.makeText(this, name + " saved!", Toast.LENGTH_SHORT).show();
+      Toast.makeText(this, name + " saved", Toast.LENGTH_SHORT).show();
       friendListFragment.refresh();
     } else {
       // TODO JF!
