@@ -27,8 +27,6 @@ import falcon.com.friendly.Util;
 import falcon.com.friendly.dialog.FriendDialog;
 import falcon.com.friendly.resolver.ContactResolver;
 import falcon.com.friendly.service.CallLogUpdateService;
-import falcon.com.friendly.service.DeleteFriendService;
-import falcon.com.friendly.store.FriendContract;
 import falcon.com.friendly.store.FriendlyDatabaseHelper;
 
 import static falcon.com.friendly.store.FriendContract.FriendEntry;

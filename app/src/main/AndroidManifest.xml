@@ -22,9 +22,6 @@
         <service
             android:name=".service.CallLogUpdateService"
             android:exported="false"/>
-        <service
-            android:name=".service.DeleteFriendService"
-            android:exported="false"/>
     </application>
 
 </manifest>
