@@ -11,12 +11,15 @@ import falcon.com.friendly.resolver.CallLogResolver;
 import falcon.com.friendly.store.FriendContract;
 import falcon.com.friendly.store.FriendlyDatabaseHelper;
 
+/**
+ * An IntentService for updating the Friend database with recent call log activity.
+ */
 public class CallLogUpdateService extends IntentService {
 
   private static final String T = "CallLogUpdateService";
 
   public CallLogUpdateService() {
-    super("CallLogUpdateService");
+    super(T);
   }
 
   @Override

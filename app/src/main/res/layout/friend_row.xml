@@ -13,23 +13,68 @@
 
         <IconButton
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:layout_weight="0.5"
             android:id="@+id/call_button"
-            android:layout_margin="10dp"
+            android:layout_margin="8dp"
             android:text="{fa-phone} Call"
             android:background="@drawable/green_button"
             android:textColor="@color/white"/>
 
         <IconButton
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:layout_weight="0.5"
             android:id="@+id/delete_button"
-            android:layout_margin="10dp"
+            android:layout_margin="8dp"
             android:text="{fa-trash-o} Delete"
             android:background="@drawable/red_button"
             android:textColor="@color/white"/>
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/deleted"
+        android:tag="back"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:background="@color/light_light_gray"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_gravity="center_vertical"
+            android:paddingLeft="20dp"
+            android:textSize="20sp"
+            android:text="Deleted"
+            android:textColor="@color/gray"/>
+
+        <LinearLayout
+            android:id="@+id/undo_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical"
+            android:paddingRight="20dp"
+            android:gravity="right"
+            android:clickable="true">
+
+            <IconTextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="20sp"
+                android:text="{fa-undo} "
+                android:textColor="@color/gray"
+                />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Undo"
+                android:textSize="20sp"
+                android:textColor="@color/gray"
+                />
+        </LinearLayout>
 
     </LinearLayout>
 
@@ -60,13 +105,13 @@
                       android:layout_toRightOf="@id/frequency_icon"
                       android:layout_marginLeft="15dp">
 
-            <TextView android:id="@+id/text1"
+            <TextView android:id="@id/contact_name"
                       android:layout_width="match_parent"
                       android:layout_height="wrap_content"
                       android:layout_marginTop="8dip"
                       android:textAppearance="?android:attr/textAppearanceListItem"/>
 
-            <TextView android:id="@+id/text2"
+            <TextView android:id="@id/last_contact"
                       android:layout_width="match_parent"
                       android:layout_height="wrap_content"
                       android:textColor="@android:color/tertiary_text_light"
