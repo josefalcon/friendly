@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-             android:layout_width="fill_parent"
-             android:layout_height="fill_parent">
+             android:layout_width="match_parent"
+             android:layout_height="match_parent">
 
     <LinearLayout
         android:id="@+id/back"
         android:tag="back"
-        android:layout_width="fill_parent"
+        android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="@color/light_light_gray">
 
@@ -15,8 +15,11 @@
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="0.5"
+            android:layout_marginTop="8dp"
+            android:layout_marginRight="8dp"
+            android:layout_marginBottom="8dp"
+            android:layout_marginLeft="16dp"
             android:id="@+id/call_button"
-            android:layout_margin="8dp"
             android:text="{fa-phone} Call"
             android:background="@drawable/green_button"
             android:textColor="@color/white"/>
@@ -25,8 +28,11 @@
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="0.5"
+            android:layout_marginTop="8dp"
+            android:layout_marginRight="16dp"
+            android:layout_marginBottom="8dp"
+            android:layout_marginLeft="8dp"
             android:id="@+id/delete_button"
-            android:layout_margin="8dp"
             android:text="{fa-trash-o} Delete"
             android:background="@drawable/red_button"
             android:textColor="@color/white"/>
@@ -35,8 +41,8 @@
     <LinearLayout
         android:id="@+id/deleted"
         android:tag="back"
-        android:layout_width="fill_parent"
-        android:layout_height="fill_parent"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
         android:background="@color/light_light_gray"
         android:visibility="gone">
 

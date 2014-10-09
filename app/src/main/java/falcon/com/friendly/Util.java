@@ -42,16 +42,4 @@ public final class Util {
     return PhoneNumberUtils.stripSeparators(PhoneNumberUtils.formatNumber(rawNumber));
   }
 
-  public static String inClausePlaceholders(final int count) {
-    final StringBuilder sb = new StringBuilder("(");
-    final int posts = count - 1;
-    for (int i = 0; i < count; i++) {
-      sb.append("?");
-      if (i < posts) {
-        sb.append(",");
-      }
-    }
-    sb.append(")");
-    return sb.toString();
-  }
 }

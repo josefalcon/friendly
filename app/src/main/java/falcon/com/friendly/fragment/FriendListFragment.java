@@ -12,18 +12,21 @@ import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
+import android.view.SoundEffectConstants;
 import android.view.View;
+import android.view.ViewConfiguration;
 import android.view.ViewGroup;
-import android.widget.AbsListView;
+import android.view.ViewTreeObserver;
+import android.widget.AdapterView;
+import android.widget.ListView;
 
-import com.fortysevendeg.swipelistview.BaseSwipeListViewListener;
-import com.fortysevendeg.swipelistview.SwipeListView;
-
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import falcon.com.friendly.R;
-import falcon.com.friendly.Util;
 import falcon.com.friendly.dialog.FriendDialog;
 import falcon.com.friendly.resolver.ContactResolver;
 import falcon.com.friendly.service.CallLogUpdateService;
@@ -38,15 +41,18 @@ public class FriendListFragment extends Fragment implements LoaderManager.Loader
 
   private static final String T = "FriendFragment";
 
-  private SwipeListView listView;
+  private ListView listView;
 
   private FriendListCursorAdapter listViewAdapter;
 
   private ContactResolver contactResolver;
 
-  private Set<Long> friendsToDelete;
+  private Map<Integer, Long> friendsToDelete;
+
+  private Set<Integer> swipedPositions;
 
   public FriendListFragment() {
+    swipedPositions = new HashSet<>();
   }
 
   @Override
@@ -57,31 +63,31 @@ public class FriendListFragment extends Fragment implements LoaderManager.Loader
     getLoaderManager().initLoader(0, null, this);
 
     contactResolver = new ContactResolver(getActivity().getContentResolver());
-    friendsToDelete = new HashSet<>();
+    friendsToDelete = new HashMap<>();
 
-    if (savedInstanceState != null) {
-      final long[] restoreFriendsToDelete = savedInstanceState.getLongArray("friendsToDelete");
-      if (restoreFriendsToDelete != null && restoreFriendsToDelete.length > 0) {
-        for (final long id : restoreFriendsToDelete) {
-          friendsToDelete.add(id);
-        }
-        clean();
-      }
-    }
+//    if (savedInstanceState != null) {
+//      final long[] restoreFriendsToDelete = savedInstanceState.getLongArray("friendsToDelete");
+//      if (restoreFriendsToDelete != null && restoreFriendsToDelete.length > 0) {
+//        for (final long id : restoreFriendsToDelete) {
+//          friendsToDelete.add(id);
+//        }
+//        clean();
+//      }
+//    }
   }
 
   @Override
   public void onSaveInstanceState(final Bundle outState) {
     super.onSaveInstanceState(outState);
 
-    if (isDirty()) {
-      final long[] result = new long[friendsToDelete.size()];
-      int i = 0;
-      for (final Long id : friendsToDelete) {
-        result[i++] = id;
-      }
-      outState.putLongArray("friendsToDelete", result);
-    }
+//    if (isDirty()) {
+//      final long[] result = new long[friendsToDelete.size()];
+//      int i = 0;
+//      for (final Map.Entry<Integer, Long> entry : friendsToDelete.entrySet()) {
+//        result[i++] = id;
+//      }
+//      outState.putLongArray("friendsToDelete", result);
+//    }
   }
 
   @Override
@@ -103,36 +109,9 @@ public class FriendListFragment extends Fragment implements LoaderManager.Loader
   public void onActivityCreated(final Bundle savedInstanceState) {
     super.onActivityCreated(savedInstanceState);
 
-    listView = (SwipeListView) getActivity().findViewById(R.id.friendListView);
-    listViewAdapter = new FriendListCursorAdapter(getActivity(), this);
+    listView = (ListView) getActivity().findViewById(R.id.friendListView);
+    listViewAdapter = new FriendListCursorAdapter(getActivity(), this, mTouchListener, backTouchListener);
     listView.setAdapter(listViewAdapter);
-    listView.setSwipeListViewListener(new BaseSwipeListViewListener() {
-      @Override
-      public void onClickFrontView(final int position) {
-        showFriendDialog(position);
-      }
-    });
-    listView.setOnScrollListener(new AbsListView.OnScrollListener() {
-      @Override
-      public void onScrollStateChanged(final AbsListView view, final int scrollState) {
-        if (scrollState == SCROLL_STATE_TOUCH_SCROLL) {
-          clean();
-          listView.closeOpenedItems();
-        }
-
-        if (scrollState != AbsListView.OnScrollListener.SCROLL_STATE_FLING
-            && scrollState != SCROLL_STATE_TOUCH_SCROLL) {
-          listView.resetScrolling();
-        }
-      }
-
-      @Override
-      public void onScroll(final AbsListView view,
-                           final int firstVisibleItem,
-                           final int visibleItemCount,
-                           final int totalItemCount) {
-      }
-    });
   }
 
   @Override
@@ -200,35 +179,31 @@ public class FriendListFragment extends Fragment implements LoaderManager.Loader
   }
 
   private void clean() {
-    if (isDirty() && deleteFriends(friendsToDelete)) {
+    if (isDirty()) {
       Log.d(T, "Fragment is dirty. Cleaning up...");
+      for (final Map.Entry<Integer, Long> entry : friendsToDelete.entrySet()) {
+        Log.d(T, "Dismissing: " + entry.getKey());
+        deleteFriend(listViewAdapter.getItemId(entry.getKey()));
+//        listView.dismiss(entry.getKey());
+      }
       friendsToDelete.clear();
-      refresh();
     } else {
       Log.d(T, "Nothing to clean up");
     }
   }
 
   /**
-   * Deletes the given friend ids from the database.
+   * Deletes the given friend id from the database.
    *
-   * @param ids the ids of the friends to delete
+   * @param id the id of the friend to delete
    * @return true if this invocation removed a value from the database, false otherwise
    */
-  private boolean deleteFriends(final Set<Long> ids) {
-    if (ids == null || ids.isEmpty()) {
-      return false;
-    }
+  private boolean deleteFriend(final long id) {
     final FriendlyDatabaseHelper databaseHelper = FriendlyDatabaseHelper.getInstance(getActivity());
     final SQLiteDatabase db = databaseHelper.getWritableDatabase();
 
-    final String whereClause = FriendEntry._ID + " IN " + Util.inClausePlaceholders(ids.size());
-    final String[] whereArgs = new String[ids.size()];
-    int i = 0;
-    for (final Long id : ids) {
-      whereArgs[i++] = String.valueOf(id);
-    }
-
+    final String whereClause = FriendEntry._ID + " = ?";
+    final String[] whereArgs = new String[] { String.valueOf(id) };
     return db.delete(FriendEntry.TABLE, whereClause, whereArgs) > 0;
   }
 
@@ -238,29 +213,27 @@ public class FriendListFragment extends Fragment implements LoaderManager.Loader
     return new View.OnClickListener() {
       @Override
       public void onClick(final View v) {
-        final Cursor cursor = listViewAdapter.getCursor();
-        if (cursor.moveToPosition(position)) {
-          final long id = cursor.getLong(cursor.getColumnIndex(FriendEntry._ID));
-          friendsToDelete.add(id);
-          crossfadeViews(backView, deletedView, CROSSFADE_DURATION);
-        }
+        final long id = listViewAdapter.getItemId(position);
+        friendsToDelete.put(position, id);
+        crossfadeViews(backView, deletedView, CROSSFADE_DURATION);
+//        deleteFriend(listViewAdapter.getItemId(position));
+//        listView.dismiss(position);
+//        refresh();
+//        animateRemoval(v);
       }
     };
   }
 
   protected View.OnClickListener makeUndoDeleteOnClickListener(final int position,
+                                                               final View frontView,
                                                                final View backView,
                                                                final View deletedView) {
     return new View.OnClickListener() {
       @Override
       public void onClick(final View v) {
-        final Cursor cursor = listViewAdapter.getCursor();
-        if (cursor.moveToPosition(position)) {
-          final long id = cursor.getLong(cursor.getColumnIndex(FriendEntry._ID));
-          friendsToDelete.remove(id);
-          listView.closeAnimate(position);
-          crossfadeViews(deletedView, backView, CROSSFADE_DURATION);
-        }
+        friendsToDelete.remove(position);
+        crossfadeViews(deletedView, backView, CROSSFADE_DURATION);
+        dismiss(frontView);
       }
     };
   }
@@ -292,5 +265,276 @@ public class FriendListFragment extends Fragment implements LoaderManager.Loader
           from.setVisibility(View.GONE);
         }
       });
+  }
+
+  private void dismiss(final View v) {
+    v.setTranslationX(v.getWidth());
+    v.setVisibility(View.VISIBLE);
+    final long duration = 250;
+    listView.setEnabled(false);
+    v.animate().setDuration(duration).
+      translationX(0).
+      withEndAction(new Runnable() {
+        @Override
+        public void run() {
+
+            mSwiping = false;
+            listView.setEnabled(true);
+        }
+      });
+  }
+
+  boolean mSwiping = false;
+  boolean mItemPressed = false;
+
+  private View.OnTouchListener mTouchListener = new View.OnTouchListener() {
+
+    float mDownX;
+    private int mSwipeSlop = 12;
+
+    @Override
+    public boolean onTouch(final View v, final MotionEvent event) {
+      final int viewPosition = listView.getPositionForView(v);
+      if (mSwipeSlop < 0) {
+        mSwipeSlop = ViewConfiguration.get(getActivity()).getScaledTouchSlop();
+      }
+      switch (event.getAction()) {
+        case MotionEvent.ACTION_DOWN:
+          if (mItemPressed) {
+            return false;
+          }
+          mItemPressed = true;
+          mDownX = event.getX();
+          break;
+        case MotionEvent.ACTION_CANCEL:
+          v.setTranslationX(0);
+          mItemPressed = false;
+          break;
+        case MotionEvent.ACTION_MOVE:
+        {
+          final float x = event.getX() + v.getTranslationX();
+          final float deltaX = x - mDownX;
+          if (deltaX < 0) {
+            break;
+          }
+
+          final float deltaXAbs = Math.abs(deltaX);
+          if (!mSwiping) {
+            if (deltaXAbs > mSwipeSlop) {
+              mSwiping = true;
+              listView.requestDisallowInterceptTouchEvent(true);
+            }
+          }
+
+          if (mSwiping) {
+            v.setTranslationX(deltaX);
+          }
+        }
+        break;
+        case MotionEvent.ACTION_UP:
+        {
+          // User let go - figure out whether to animate the view out, or back into place
+          if (mSwiping) {
+            final float x = event.getX() + v.getTranslationX();
+            final float deltaX = x - mDownX;
+            final float deltaXAbs = Math.abs(deltaX);
+            final float fractionCovered;
+            final float endX;
+            final boolean remove;
+            if (deltaXAbs > v.getWidth() / 2) {
+              // Greater than a quarter of the width - animate it out
+              fractionCovered = deltaXAbs / v.getWidth();
+              endX = deltaX < 0 ? -v.getWidth() : v.getWidth();
+              remove = true;
+            } else {
+              // Not far enough - animate it back
+              fractionCovered = 1 - (deltaXAbs / v.getWidth());
+              endX = 0;
+              remove = false;
+            }
+
+            final long duration = (int) ((1 - fractionCovered) * 250);
+            listView.setEnabled(false);
+            v.animate().setDuration(duration).
+              translationX(endX).
+              withEndAction(new Runnable() {
+                @Override
+                public void run() {
+                  // Restore animated values
+                  if (remove) {
+                    swipedPositions.add(viewPosition);
+                  }
+
+                  mSwiping = false;
+                  listView.setEnabled(true);
+                }
+              });
+          } else {
+            if (!swipedPositions.contains(viewPosition)) {
+              v.playSoundEffect(SoundEffectConstants.CLICK);
+              showFriendDialog(viewPosition);
+            }
+          }
+        }
+        mItemPressed = false;
+        break;
+        default:
+          return false;
+      }
+      return true;
+    }
+  };
+
+  private View.OnTouchListener backTouchListener = new View.OnTouchListener() {
+
+    float mDownX;
+    private int mSwipeSlop = 12;
+
+    @Override
+    public boolean onTouch(final View v, final MotionEvent event) {
+      final View frontView = ((ViewGroup) v.getParent()).findViewById(R.id.front);
+      final int initialPosition = frontView.getWidth();
+      final int viewPosition = listView.getPositionForView(v);
+
+      if (mSwipeSlop < 0) {
+        mSwipeSlop = ViewConfiguration.get(getActivity()).getScaledTouchSlop();
+      }
+      switch (event.getAction()) {
+        case MotionEvent.ACTION_DOWN:
+          if (mItemPressed) {
+            return false;
+          }
+          mItemPressed = true;
+          mDownX = event.getX();
+          break;
+        case MotionEvent.ACTION_CANCEL:
+          v.setTranslationX(initialPosition);
+          mItemPressed = false;
+          break;
+        case MotionEvent.ACTION_MOVE:
+        {
+          final float x = event.getX() + v.getTranslationX();
+          final float deltaX = x - mDownX;
+          if (deltaX > 0) {
+            break;
+          }
+
+          final float deltaXAbs = Math.abs(deltaX);
+          if (!mSwiping) {
+            if (deltaXAbs > mSwipeSlop) {
+              mSwiping = true;
+              listView.requestDisallowInterceptTouchEvent(true);
+            }
+          }
+
+          if (mSwiping) {
+            frontView.setTranslationX(initialPosition - deltaXAbs);
+          }
+        }
+        break;
+        case MotionEvent.ACTION_UP:
+        {
+          // User let go - figure out whether to animate the view out, or back into place
+          if (mSwiping) {
+            final float x = event.getX() + v.getTranslationX();
+            final float deltaX = x - mDownX;
+            final float deltaXAbs = Math.abs(deltaX);
+            final float fractionCovered;
+            final float endX;
+            final boolean remove;
+            if (deltaXAbs > v.getWidth() / 2) {
+              // Greater than a quarter of the width - animate it out
+              fractionCovered = 1 - (deltaXAbs / v.getWidth());
+              endX = 0;
+              remove = true;
+            } else {
+              // Not far enough - animate it back
+              fractionCovered = deltaXAbs / v.getWidth();
+              endX = initialPosition;
+              remove = false;
+            }
+
+            final long duration = (int) ((1 - fractionCovered) * 250);
+            listView.setEnabled(false);
+            frontView.animate().setDuration(duration).
+              translationX(endX).
+              withEndAction(new Runnable() {
+                @Override
+                public void run() {
+                  // Restore animated values
+                  if (remove) {
+                    swipedPositions.remove(viewPosition);
+                  }
+
+                  mSwiping = false;
+                  listView.setEnabled(true);
+                }
+              });
+          }
+        }
+        mItemPressed = false;
+        break;
+        default:
+          return false;
+      }
+      return true;
+    }
+  };
+
+
+  HashMap<Long, Integer> mItemIdTopMap = new HashMap<Long, Integer>();
+
+  private void animateRemoval(final View viewToRemove) {
+    final int firstVisiblePosition = listView.getFirstVisiblePosition();
+    for (int i = 0; i < listView.getChildCount(); ++i) {
+      final View child = listView.getChildAt(i);
+      if (child != viewToRemove) {
+        final int position = firstVisiblePosition + i;
+        final long itemId = listViewAdapter.getItemId(position);
+        mItemIdTopMap.put(itemId, child.getTop());
+      }
+    }
+    // Delete the item from the adapter
+    final int position = listView.getPositionForView(viewToRemove);
+    deleteFriend(listViewAdapter.getItemId(position));
+
+    final ViewTreeObserver observer = listView.getViewTreeObserver();
+    observer.addOnPreDrawListener(new ViewTreeObserver.OnPreDrawListener() {
+      public boolean onPreDraw() {
+        observer.removeOnPreDrawListener(this);
+        boolean firstAnimation = true;
+        final int firstVisiblePosition = listView.getFirstVisiblePosition();
+        for (int i = 0; i < listView.getChildCount(); ++i) {
+          final View child = listView.getChildAt(i);
+          final int position = firstVisiblePosition + i;
+          final long itemId = listViewAdapter.getItemId(position);
+          final Integer startTop = mItemIdTopMap.get(itemId);
+          final int top = child.getTop();
+          if (startTop != null) {
+            if (startTop != top) {
+              final int delta = startTop - top;
+              child.setTranslationY(delta);
+              child.animate().setDuration(150).translationY(0);
+              if (firstAnimation) {
+                child.animate().withEndAction(new Runnable() {
+                  public void run() {
+                    Log.d(T, "done");
+                    mSwiping = false;
+                    listView.setEnabled(true);
+//                    listView.closeOpenedItems();
+                  }
+                });
+                firstAnimation = false;
+              }
+            }
+          }
+        }
+        mItemIdTopMap.clear();
+        return true;
+      }
+    });
+
+    refresh();
+
   }
 }

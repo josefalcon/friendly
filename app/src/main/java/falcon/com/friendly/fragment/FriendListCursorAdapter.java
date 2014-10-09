@@ -25,26 +25,48 @@ public class FriendListCursorAdapter extends ResourceCursorAdapter {
 
   private final FriendListFragment friendListFragment;
 
+  final View.OnTouchListener touchListener;
+
+  final View.OnTouchListener backTouchListener;
+
   public FriendListCursorAdapter(final Context context,
-                                 final FriendListFragment friendListFragment) {
-    super(context, R.layout.friend_row, null, 0);
+                                 final FriendListFragment friendListFragment,
+                                 final View.OnTouchListener touchListener,
+                                 final View.OnTouchListener backTouchListener) {
+    super(context, R.layout.friend_row, null, true);
     this.context = context;
     this.friendListFragment = friendListFragment;
+    this.touchListener = touchListener;
+    this.backTouchListener = backTouchListener;
   }
 
   @Override
   public View getView(final int position, final View convertView, final ViewGroup parent) {
     final View view = super.getView(position, convertView, parent);
+    final View frontView = view.findViewById(R.id.front);
     final View backView = view.findViewById(R.id.back);
     final View deleteButton = view.findViewById(R.id.delete_button);
     final View deletedView = view.findViewById(R.id.deleted);
     final View undoButton = view.findViewById(R.id.undo_button);
 
+    if (convertView != view) {
+      frontView.setOnTouchListener(touchListener);
+      backView.setOnTouchListener(backTouchListener);
+    }
+
+//      frontView.setVisibility(View.VISIBLE);
+//      frontView.setAlpha(1f);
+//      backView.setVisibility(View.VISIBLE);
+//      backView.setAlpha(1f);
+//      deletedView.setVisibility(View.GONE);
+//      deletedView.setAlpha(0f);
+//    }
+
     deleteButton.setOnClickListener(
       friendListFragment.makeDeleteFriendOnClickListener(position, backView, deletedView));
 
     undoButton.setOnClickListener(
-      friendListFragment.makeUndoDeleteOnClickListener(position, backView, deletedView));
+      friendListFragment.makeUndoDeleteOnClickListener(position, frontView, backView, deletedView));
 
     return view;
   }
