@@ -33,23 +33,6 @@ public class FriendListCursorAdapter extends ResourceCursorAdapter {
   }
 
   @Override
-  public View getView(final int position, final View convertView, final ViewGroup parent) {
-    final View view = super.getView(position, convertView, parent);
-    final View backView = view.findViewById(R.id.back);
-    final View deleteButton = view.findViewById(R.id.delete_button);
-    final View deletedView = view.findViewById(R.id.deleted);
-    final View undoButton = view.findViewById(R.id.undo_button);
-
-    deleteButton.setOnClickListener(
-      friendListFragment.makeDeleteFriendOnClickListener(position, backView, deletedView));
-
-    undoButton.setOnClickListener(
-      friendListFragment.makeUndoDeleteOnClickListener(position, backView, deletedView));
-
-    return view;
-  }
-
-  @Override
   public void bindView(final View view, final Context context, final Cursor cursor) {
     final TextView contactNameView = (TextView) view.findViewById(R.id.contact_name);
     final TextView lastContactView = (TextView) view.findViewById(R.id.last_contact);

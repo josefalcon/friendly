@@ -1,7 +1,5 @@
 package falcon.com.friendly.fragment;
 
-import android.animation.Animator;
-import android.animation.AnimatorListenerAdapter;
 import android.app.Fragment;
 import android.app.LoaderManager;
 import android.content.CursorLoader;
@@ -14,16 +12,10 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.AbsListView;
-
-import com.fortysevendeg.swipelistview.BaseSwipeListViewListener;
-import com.fortysevendeg.swipelistview.SwipeListView;
-
-import java.util.HashSet;
-import java.util.Set;
+import android.widget.AdapterView;
+import android.widget.ListView;
 
 import falcon.com.friendly.R;
-import falcon.com.friendly.Util;
 import falcon.com.friendly.dialog.FriendDialog;
 import falcon.com.friendly.resolver.ContactResolver;
 import falcon.com.friendly.service.CallLogUpdateService;
@@ -38,13 +30,11 @@ public class FriendListFragment extends Fragment implements LoaderManager.Loader
 
   private static final String T = "FriendFragment";
 
-  private SwipeListView listView;
+  private ListView listView;
 
   private FriendListCursorAdapter listViewAdapter;
 
   private ContactResolver contactResolver;
-
-  private Set<Long> friendsToDelete;
 
   public FriendListFragment() {
   }
@@ -57,31 +47,6 @@ public class FriendListFragment extends Fragment implements LoaderManager.Loader
     getLoaderManager().initLoader(0, null, this);
 
     contactResolver = new ContactResolver(getActivity().getContentResolver());
-    friendsToDelete = new HashSet<>();
-
-    if (savedInstanceState != null) {
-      final long[] restoreFriendsToDelete = savedInstanceState.getLongArray("friendsToDelete");
-      if (restoreFriendsToDelete != null && restoreFriendsToDelete.length > 0) {
-        for (final long id : restoreFriendsToDelete) {
-          friendsToDelete.add(id);
-        }
-        clean();
-      }
-    }
-  }
-
-  @Override
-  public void onSaveInstanceState(final Bundle outState) {
-    super.onSaveInstanceState(outState);
-
-    if (isDirty()) {
-      final long[] result = new long[friendsToDelete.size()];
-      int i = 0;
-      for (final Long id : friendsToDelete) {
-        result[i++] = id;
-      }
-      outState.putLongArray("friendsToDelete", result);
-    }
   }
 
   @Override
@@ -103,34 +68,16 @@ public class FriendListFragment extends Fragment implements LoaderManager.Loader
   public void onActivityCreated(final Bundle savedInstanceState) {
     super.onActivityCreated(savedInstanceState);
 
-    listView = (SwipeListView) getActivity().findViewById(R.id.friendListView);
+    listView = (ListView) getActivity().findViewById(R.id.friend_list_view);
     listViewAdapter = new FriendListCursorAdapter(getActivity(), this);
     listView.setAdapter(listViewAdapter);
-    listView.setSwipeListViewListener(new BaseSwipeListViewListener() {
+    listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
       @Override
-      public void onClickFrontView(final int position) {
+      public void onItemClick(final AdapterView<?> parent,
+                              final View view,
+                              final int position,
+                              final long id) {
         showFriendDialog(position);
-      }
-    });
-    listView.setOnScrollListener(new AbsListView.OnScrollListener() {
-      @Override
-      public void onScrollStateChanged(final AbsListView view, final int scrollState) {
-        if (scrollState == SCROLL_STATE_TOUCH_SCROLL) {
-          clean();
-          listView.closeOpenedItems();
-        }
-
-        if (scrollState != AbsListView.OnScrollListener.SCROLL_STATE_FLING
-            && scrollState != SCROLL_STATE_TOUCH_SCROLL) {
-          listView.resetScrolling();
-        }
-      }
-
-      @Override
-      public void onScroll(final AbsListView view,
-                           final int firstVisibleItem,
-                           final int visibleItemCount,
-                           final int totalItemCount) {
       }
     });
   }
@@ -195,102 +142,4 @@ public class FriendListFragment extends Fragment implements LoaderManager.Loader
     }
   }
 
-  private boolean isDirty() {
-    return !friendsToDelete.isEmpty();
-  }
-
-  private void clean() {
-    if (isDirty() && deleteFriends(friendsToDelete)) {
-      Log.d(T, "Fragment is dirty. Cleaning up...");
-      friendsToDelete.clear();
-      refresh();
-    } else {
-      Log.d(T, "Nothing to clean up");
-    }
-  }
-
-  /**
-   * Deletes the given friend ids from the database.
-   *
-   * @param ids the ids of the friends to delete
-   * @return true if this invocation removed a value from the database, false otherwise
-   */
-  private boolean deleteFriends(final Set<Long> ids) {
-    if (ids == null || ids.isEmpty()) {
-      return false;
-    }
-    final FriendlyDatabaseHelper databaseHelper = FriendlyDatabaseHelper.getInstance(getActivity());
-    final SQLiteDatabase db = databaseHelper.getWritableDatabase();
-
-    final String whereClause = FriendEntry._ID + " IN " + Util.inClausePlaceholders(ids.size());
-    final String[] whereArgs = new String[ids.size()];
-    int i = 0;
-    for (final Long id : ids) {
-      whereArgs[i++] = String.valueOf(id);
-    }
-
-    return db.delete(FriendEntry.TABLE, whereClause, whereArgs) > 0;
-  }
-
-  protected View.OnClickListener makeDeleteFriendOnClickListener(final int position,
-                                                                 final View backView,
-                                                                 final View deletedView) {
-    return new View.OnClickListener() {
-      @Override
-      public void onClick(final View v) {
-        final Cursor cursor = listViewAdapter.getCursor();
-        if (cursor.moveToPosition(position)) {
-          final long id = cursor.getLong(cursor.getColumnIndex(FriendEntry._ID));
-          friendsToDelete.add(id);
-          crossfadeViews(backView, deletedView, CROSSFADE_DURATION);
-        }
-      }
-    };
-  }
-
-  protected View.OnClickListener makeUndoDeleteOnClickListener(final int position,
-                                                               final View backView,
-                                                               final View deletedView) {
-    return new View.OnClickListener() {
-      @Override
-      public void onClick(final View v) {
-        final Cursor cursor = listViewAdapter.getCursor();
-        if (cursor.moveToPosition(position)) {
-          final long id = cursor.getLong(cursor.getColumnIndex(FriendEntry._ID));
-          friendsToDelete.remove(id);
-          listView.closeAnimate(position);
-          crossfadeViews(deletedView, backView, CROSSFADE_DURATION);
-        }
-      }
-    };
-  }
-
-  private static final int CROSSFADE_DURATION = 400;
-
-  /**
-   * Crossfades one view into another with the given duration.
-   *
-   * @param from     the view to fade out
-   * @param to       the view to fade in
-   * @param duration the length of the animation
-   */
-  private void crossfadeViews(final View from, final View to, final long duration) {
-    to.setAlpha(0f);
-    to.setVisibility(View.VISIBLE);
-
-    to.animate()
-      .alpha(1f)
-      .setDuration(duration)
-      .setListener(null);
-
-    from.animate()
-      .alpha(0f)
-      .setDuration(duration)
-      .setListener(new AnimatorListenerAdapter() {
-        @Override
-        public void onAnimationEnd(final Animator animation) {
-          from.setVisibility(View.GONE);
-        }
-      });
-  }
 }
