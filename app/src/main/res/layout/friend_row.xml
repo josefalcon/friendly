@@ -11,31 +11,28 @@
         android:layout_height="match_parent"
         android:background="@color/light_light_gray">
 
-        <IconButton
-            android:layout_width="0dp"
+        <IconTextView
+            android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_weight="0.5"
-            android:layout_marginTop="8dp"
-            android:layout_marginRight="8dp"
-            android:layout_marginBottom="8dp"
-            android:layout_marginLeft="16dp"
-            android:id="@+id/call_button"
+            android:padding="18dp"
+            android:id="@+id/call"
             android:text="{fa-phone} Call"
-            android:background="@drawable/green_button"
+            android:textSize="25sp"
+            android:background="@color/green"
             android:textColor="@color/white"/>
 
-        <IconButton
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="0.5"
-            android:layout_marginTop="8dp"
-            android:layout_marginRight="16dp"
-            android:layout_marginBottom="8dp"
-            android:layout_marginLeft="8dp"
-            android:id="@+id/delete_button"
-            android:text="{fa-trash-o} Delete"
-            android:background="@drawable/red_button"
-            android:textColor="@color/white"/>
+        <!--<IconTextView-->
+            <!--android:layout_width="match_parent"-->
+            <!--android:layout_height="match_parent"-->
+            <!--android:gravity="right"-->
+            <!--android:padding="18dp"-->
+            <!--android:id="@+id/delete"-->
+            <!--android:text="{fa-trash-o} Delete"-->
+            <!--android:textSize="25sp"-->
+            <!--android:background="@color/light_light_gray"-->
+            <!--android:textColor="@color/gray"-->
+            <!--android:visibility="gone"/>-->
+
     </LinearLayout>
 
     <LinearLayout

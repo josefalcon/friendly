@@ -18,7 +18,7 @@ import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
-import android.widget.AdapterView;
+import android.widget.AbsListView;
 import android.widget.ListView;
 
 import java.util.HashMap;
@@ -110,7 +110,7 @@ public class FriendListFragment extends Fragment implements LoaderManager.Loader
     super.onActivityCreated(savedInstanceState);
 
     listView = (ListView) getActivity().findViewById(R.id.friendListView);
-    listViewAdapter = new FriendListCursorAdapter(getActivity(), this, mTouchListener, backTouchListener);
+    listViewAdapter = new FriendListCursorAdapter(getActivity(), this, mTouchListener);
     listView.setAdapter(listViewAdapter);
   }
 
@@ -178,18 +178,22 @@ public class FriendListFragment extends Fragment implements LoaderManager.Loader
     return !friendsToDelete.isEmpty();
   }
 
-  private void clean() {
-    if (isDirty()) {
-      Log.d(T, "Fragment is dirty. Cleaning up...");
-      for (final Map.Entry<Integer, Long> entry : friendsToDelete.entrySet()) {
-        Log.d(T, "Dismissing: " + entry.getKey());
-        deleteFriend(listViewAdapter.getItemId(entry.getKey()));
-//        listView.dismiss(entry.getKey());
-      }
-      friendsToDelete.clear();
-    } else {
-      Log.d(T, "Nothing to clean up");
+  private View getViewAt(int position) {
+    int firstPosition = listView.getFirstVisiblePosition() - listView.getHeaderViewsCount();
+    int wantedChild = position - firstPosition;
+    if (wantedChild < 0 || wantedChild >= listView.getChildCount()) {
+      return null;
     }
+    return listView.getChildAt(wantedChild);
+  }
+
+  private void clean() {
+    Log.d(T, "Fragment is dirty. Cleaning up...");
+    for (final Map.Entry<Integer, Long> entry : friendsToDelete.entrySet()) {
+      Log.d(T, "Dismissing: " + entry.getKey());
+      animateRemoval(getViewAt(entry.getKey()));
+    }
+    friendsToDelete.clear();
   }
 
   /**
@@ -207,22 +211,6 @@ public class FriendListFragment extends Fragment implements LoaderManager.Loader
     return db.delete(FriendEntry.TABLE, whereClause, whereArgs) > 0;
   }
 
-  protected View.OnClickListener makeDeleteFriendOnClickListener(final int position,
-                                                                 final View backView,
-                                                                 final View deletedView) {
-    return new View.OnClickListener() {
-      @Override
-      public void onClick(final View v) {
-        final long id = listViewAdapter.getItemId(position);
-        friendsToDelete.put(position, id);
-        crossfadeViews(backView, deletedView, CROSSFADE_DURATION);
-//        deleteFriend(listViewAdapter.getItemId(position));
-//        listView.dismiss(position);
-//        refresh();
-//        animateRemoval(v);
-      }
-    };
-  }
 
   protected View.OnClickListener makeUndoDeleteOnClickListener(final int position,
                                                                final View frontView,
@@ -232,8 +220,15 @@ public class FriendListFragment extends Fragment implements LoaderManager.Loader
       @Override
       public void onClick(final View v) {
         friendsToDelete.remove(position);
-        crossfadeViews(deletedView, backView, CROSSFADE_DURATION);
-        dismiss(frontView);
+        closeView(frontView, new Runnable() {
+          @Override
+          public void run() {
+            deletedView.setVisibility(View.GONE);
+            deletedView.setAlpha(0f);
+            backView.setVisibility(View.VISIBLE);
+            backView.setAlpha(1f);
+          }
+        });
       }
     };
   }
@@ -267,8 +262,8 @@ public class FriendListFragment extends Fragment implements LoaderManager.Loader
       });
   }
 
-  private void dismiss(final View v) {
-    v.setTranslationX(v.getWidth());
+  private void closeView(final View v, final Runnable callback) {
+    v.setTranslationX(-v.getWidth());
     v.setVisibility(View.VISIBLE);
     final long duration = 250;
     listView.setEnabled(false);
@@ -277,9 +272,8 @@ public class FriendListFragment extends Fragment implements LoaderManager.Loader
       withEndAction(new Runnable() {
         @Override
         public void run() {
-
-            mSwiping = false;
-            listView.setEnabled(true);
+          listView.setEnabled(true);
+          callback.run();
         }
       });
   }
@@ -287,14 +281,23 @@ public class FriendListFragment extends Fragment implements LoaderManager.Loader
   boolean mSwiping = false;
   boolean mItemPressed = false;
 
+  private static final int LEFT = -1;
+  private static final int RIGHT = 1;
+
   private View.OnTouchListener mTouchListener = new View.OnTouchListener() {
 
     float mDownX;
     private int mSwipeSlop = 12;
+    int direction = 0;
 
     @Override
     public boolean onTouch(final View v, final MotionEvent event) {
+      final ViewGroup parent = (ViewGroup) v.getParent();
+      final View backView = parent.findViewById(R.id.back);
+      final View deletedView = parent.findViewById(R.id.deleted);
+      final View callView = parent.findViewById(R.id.call);
       final int viewPosition = listView.getPositionForView(v);
+
       if (mSwipeSlop < 0) {
         mSwipeSlop = ViewConfiguration.get(getActivity()).getScaledTouchSlop();
       }
@@ -315,7 +318,11 @@ public class FriendListFragment extends Fragment implements LoaderManager.Loader
           final float x = event.getX() + v.getTranslationX();
           final float deltaX = x - mDownX;
           if (deltaX < 0) {
-            break;
+            direction = LEFT;
+            callView.setVisibility(View.GONE);
+          } else {
+            direction = RIGHT;
+            callView.setVisibility(View.VISIBLE);
           }
 
           final float deltaXAbs = Math.abs(deltaX);
@@ -341,7 +348,9 @@ public class FriendListFragment extends Fragment implements LoaderManager.Loader
             final float fractionCovered;
             final float endX;
             final boolean remove;
-            if (deltaXAbs > v.getWidth() / 2) {
+
+            // TODO: for now we don't let right swipes succeed
+            if (direction != RIGHT && deltaXAbs > v.getWidth() * 0.75) {
               // Greater than a quarter of the width - animate it out
               fractionCovered = deltaXAbs / v.getWidth();
               endX = deltaX < 0 ? -v.getWidth() : v.getWidth();
@@ -362,6 +371,14 @@ public class FriendListFragment extends Fragment implements LoaderManager.Loader
                 public void run() {
                   // Restore animated values
                   if (remove) {
+                    if (direction == RIGHT) {
+                      Log.d(T, "call action!");
+                    } else if (direction == LEFT) {
+//                      final long id = listViewAdapter.getItemId(viewPosition);
+//                      friendsToDelete.put(viewPosition, id);
+//                      crossfadeViews(backView, deletedView, CROSSFADE_DURATION);
+                      animateRemoval(v);
+                    }
                     swipedPositions.add(viewPosition);
                   }
 
@@ -385,103 +402,6 @@ public class FriendListFragment extends Fragment implements LoaderManager.Loader
     }
   };
 
-  private View.OnTouchListener backTouchListener = new View.OnTouchListener() {
-
-    float mDownX;
-    private int mSwipeSlop = 12;
-
-    @Override
-    public boolean onTouch(final View v, final MotionEvent event) {
-      final View frontView = ((ViewGroup) v.getParent()).findViewById(R.id.front);
-      final int initialPosition = frontView.getWidth();
-      final int viewPosition = listView.getPositionForView(v);
-
-      if (mSwipeSlop < 0) {
-        mSwipeSlop = ViewConfiguration.get(getActivity()).getScaledTouchSlop();
-      }
-      switch (event.getAction()) {
-        case MotionEvent.ACTION_DOWN:
-          if (mItemPressed) {
-            return false;
-          }
-          mItemPressed = true;
-          mDownX = event.getX();
-          break;
-        case MotionEvent.ACTION_CANCEL:
-          v.setTranslationX(initialPosition);
-          mItemPressed = false;
-          break;
-        case MotionEvent.ACTION_MOVE:
-        {
-          final float x = event.getX() + v.getTranslationX();
-          final float deltaX = x - mDownX;
-          if (deltaX > 0) {
-            break;
-          }
-
-          final float deltaXAbs = Math.abs(deltaX);
-          if (!mSwiping) {
-            if (deltaXAbs > mSwipeSlop) {
-              mSwiping = true;
-              listView.requestDisallowInterceptTouchEvent(true);
-            }
-          }
-
-          if (mSwiping) {
-            frontView.setTranslationX(initialPosition - deltaXAbs);
-          }
-        }
-        break;
-        case MotionEvent.ACTION_UP:
-        {
-          // User let go - figure out whether to animate the view out, or back into place
-          if (mSwiping) {
-            final float x = event.getX() + v.getTranslationX();
-            final float deltaX = x - mDownX;
-            final float deltaXAbs = Math.abs(deltaX);
-            final float fractionCovered;
-            final float endX;
-            final boolean remove;
-            if (deltaXAbs > v.getWidth() / 2) {
-              // Greater than a quarter of the width - animate it out
-              fractionCovered = 1 - (deltaXAbs / v.getWidth());
-              endX = 0;
-              remove = true;
-            } else {
-              // Not far enough - animate it back
-              fractionCovered = deltaXAbs / v.getWidth();
-              endX = initialPosition;
-              remove = false;
-            }
-
-            final long duration = (int) ((1 - fractionCovered) * 250);
-            listView.setEnabled(false);
-            frontView.animate().setDuration(duration).
-              translationX(endX).
-              withEndAction(new Runnable() {
-                @Override
-                public void run() {
-                  // Restore animated values
-                  if (remove) {
-                    swipedPositions.remove(viewPosition);
-                  }
-
-                  mSwiping = false;
-                  listView.setEnabled(true);
-                }
-              });
-          }
-        }
-        mItemPressed = false;
-        break;
-        default:
-          return false;
-      }
-      return true;
-    }
-  };
-
-
   HashMap<Long, Integer> mItemIdTopMap = new HashMap<Long, Integer>();
 
   private void animateRemoval(final View viewToRemove) {
@@ -497,6 +417,7 @@ public class FriendListFragment extends Fragment implements LoaderManager.Loader
     // Delete the item from the adapter
     final int position = listView.getPositionForView(viewToRemove);
     deleteFriend(listViewAdapter.getItemId(position));
+    refresh();
 
     final ViewTreeObserver observer = listView.getViewTreeObserver();
     observer.addOnPreDrawListener(new ViewTreeObserver.OnPreDrawListener() {
@@ -514,14 +435,13 @@ public class FriendListFragment extends Fragment implements LoaderManager.Loader
             if (startTop != top) {
               final int delta = startTop - top;
               child.setTranslationY(delta);
-              child.animate().setDuration(150).translationY(0);
+              child.animate().setDuration(550).translationY(0);
               if (firstAnimation) {
                 child.animate().withEndAction(new Runnable() {
                   public void run() {
                     Log.d(T, "done");
                     mSwiping = false;
                     listView.setEnabled(true);
-//                    listView.closeOpenedItems();
                   }
                 });
                 firstAnimation = false;
@@ -533,8 +453,5 @@ public class FriendListFragment extends Fragment implements LoaderManager.Loader
         return true;
       }
     });
-
-    refresh();
-
   }
 }
