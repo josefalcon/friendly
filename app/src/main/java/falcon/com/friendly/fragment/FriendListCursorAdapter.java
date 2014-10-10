@@ -6,7 +6,6 @@ import android.graphics.Color;
 import android.net.Uri;
 import android.provider.ContactsContract;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.IconTextView;
 import android.widget.ResourceCursorAdapter;
 import android.widget.TextView;
@@ -23,13 +22,9 @@ public class FriendListCursorAdapter extends ResourceCursorAdapter {
 
   private final Context context;
 
-  private final FriendListFragment friendListFragment;
-
-  public FriendListCursorAdapter(final Context context,
-                                 final FriendListFragment friendListFragment) {
+  public FriendListCursorAdapter(final Context context) {
     super(context, R.layout.friend_row, null, 0);
     this.context = context;
-    this.friendListFragment = friendListFragment;
   }
 
   @Override
