@@ -7,7 +7,7 @@
         <!-- Removes the drop shadow underneath all ActionBar(s) -->
         <item name="android:windowContentOverlay">@null</item>
 
-        <item name="android:spinnerItemStyle">@style/yourStyleForSpinnerItem</item>
+        <item name="android:spinnerItemStyle">@style/GraySpinnerItem</item>
     </style>
 
     <!-- Action bar style -->
@@ -25,7 +25,7 @@
         <item name="android:textSize">16sp</item>
     </style>
 
-    <style name="yourStyleForSpinnerItem">
+    <style name="GraySpinnerItem">
         <item name="android:textColor">@color/dark_gray</item>
         <item name="android:textSize">16sp</item>
     </style>

@@ -32,6 +32,8 @@ public class FriendListFragment extends Fragment implements LoaderManager.Loader
 
   private ListView listView;
 
+  private View emptyListView;
+
   private FriendListCursorAdapter listViewAdapter;
 
   private ContactResolver contactResolver;
@@ -61,14 +63,16 @@ public class FriendListFragment extends Fragment implements LoaderManager.Loader
   public View onCreateView(final LayoutInflater inflater,
                            final ViewGroup container,
                            final Bundle savedInstanceState) {
-    return inflater.inflate(R.layout.friend_fragment, container, false);
+    final View view = inflater.inflate(R.layout.friend_fragment, container, false);
+    listView = (ListView) view.findViewById(R.id.friend_list_view);
+    listView.setEmptyView(view.findViewById(R.id.empty_list_view));
+    return view;
   }
 
   @Override
   public void onActivityCreated(final Bundle savedInstanceState) {
     super.onActivityCreated(savedInstanceState);
 
-    listView = (ListView) getActivity().findViewById(R.id.friend_list_view);
     listViewAdapter = new FriendListCursorAdapter(getActivity(), this);
     listView.setAdapter(listViewAdapter);
     listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
