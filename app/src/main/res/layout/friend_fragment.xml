@@ -21,7 +21,7 @@
         <LinearLayout
             android:orientation="vertical"
             android:layout_gravity="center"
-            android:layout_marginTop="-20dp"
+            android:layout_marginTop="-30dp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
 
@@ -31,7 +31,8 @@
                 android:gravity="center"
                 android:text="{fa-group}"
                 android:textSize="65sp"
-                android:textColor="@color/light_light_gray"
+                android:textColor="@color/light_gray"
+
                 />
 
             <TextView
