@@ -92,8 +92,8 @@ public class FriendListFragment extends Fragment implements LoaderManager.Loader
         final SQLiteDatabase db =
           FriendlyDatabaseHelper.getInstance(getActivity()).getReadableDatabase();
         final String query =
-          "SELECT *, max(last_contact) FROM friend GROUP BY contact_id, lookup_key "
-          + "ORDER BY (strftime('%s','now') - (last_contact / 1000)) / (1.0 * frequency) DESC";
+          "SELECT *, max(last_contact), min(frequency) FROM friend GROUP BY contact_id, lookup_key "
+          + "ORDER BY (CAST(strftime('%s','now') as integer) - (last_contact / 1000)) / (1.0 * frequency) DESC";
         return db.rawQuery(query, null);
       }
     };
