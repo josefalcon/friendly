@@ -55,7 +55,6 @@ public class CallLogUpdateService extends IntentService {
       }
     } finally {
       cursor.close();
-      stopSelf();
     }
   }
 
