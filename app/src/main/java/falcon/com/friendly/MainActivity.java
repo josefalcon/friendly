@@ -1,8 +1,10 @@
 package falcon.com.friendly;
 
 import android.app.Activity;
+import android.app.AlarmManager;
 import android.app.DialogFragment;
 import android.app.Fragment;
+import android.app.PendingIntent;
 import android.content.ContentValues;
 import android.content.Intent;
 import android.database.SQLException;
@@ -23,6 +25,7 @@ import java.util.Map;
 import falcon.com.friendly.dialog.FriendDialog;
 import falcon.com.friendly.dialog.FriendDialogListener;
 import falcon.com.friendly.fragment.FriendListFragment;
+import falcon.com.friendly.receiver.AlarmReceiver;
 import falcon.com.friendly.resolver.CallLogResolver;
 import falcon.com.friendly.resolver.ContactResolver;
 import falcon.com.friendly.store.FriendContract;
@@ -49,6 +52,16 @@ public class MainActivity extends Activity implements FriendDialogListener {
 
     contactResolver = new ContactResolver(getContentResolver());
     callLogResolver = new CallLogResolver(getContentResolver());
+
+
+    final Intent myIntent = new Intent(MainActivity.this, AlarmReceiver.class);
+
+    final AlarmManager alarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
+    alarmManager.set(AlarmManager.RTC,
+                     System.currentTimeMillis() + 1000,
+                     PendingIntent.getBroadcast(MainActivity.this, 0, myIntent, 0));
+
+
   }
 
   @Override
