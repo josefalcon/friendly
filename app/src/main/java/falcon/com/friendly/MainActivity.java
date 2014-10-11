@@ -28,6 +28,7 @@ import falcon.com.friendly.fragment.FriendListFragment;
 import falcon.com.friendly.receiver.AlarmReceiver;
 import falcon.com.friendly.resolver.CallLogResolver;
 import falcon.com.friendly.resolver.ContactResolver;
+import falcon.com.friendly.service.AlarmService;
 import falcon.com.friendly.store.FriendContract;
 import falcon.com.friendly.store.FriendlyDatabaseHelper;
 
@@ -53,15 +54,8 @@ public class MainActivity extends Activity implements FriendDialogListener {
     contactResolver = new ContactResolver(getContentResolver());
     callLogResolver = new CallLogResolver(getContentResolver());
 
-
-    final Intent myIntent = new Intent(MainActivity.this, AlarmReceiver.class);
-
-    final AlarmManager alarmManager = (AlarmManager) getSystemService(ALARM_SERVICE);
-    alarmManager.set(AlarmManager.RTC,
-                     System.currentTimeMillis() + 1000,
-                     PendingIntent.getBroadcast(MainActivity.this, 0, myIntent, 0));
-
-
+    final Intent intent = new Intent(this, AlarmService.class);
+    startService(intent);
   }
 
   @Override
@@ -166,7 +160,12 @@ public class MainActivity extends Activity implements FriendDialogListener {
       }
 
       final long id = db.replaceOrThrow(FriendContract.FriendEntry.TABLE, null, contentValues);
-      return id != -1;
+      final boolean modified = id != -1;
+      if (modified) {
+        final Intent intent = new Intent(this, AlarmService.class);
+        startService(intent);
+      }
+      return modified;
     } catch (final SQLException e) {
       Log.d(T, "Ignoring duplicate friend...");
     }
