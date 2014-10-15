@@ -59,6 +59,10 @@ public class NotificationService extends IntentService {
       .setContentIntent(pendingIntent);
 
     notificationManager.notify(0, notificationBuilder.build());
+
+    // schedule next alarm
+    final Context context = getApplicationContext();
+    context.startService(new Intent(context, AlarmService.class));
   }
 
   private String getContentText() {

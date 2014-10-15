@@ -7,6 +7,8 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 
+import java.util.Calendar;
+
 import falcon.com.friendly.receiver.AlarmReceiver;
 import falcon.com.friendly.store.FriendlyDatabaseHelper;
 
@@ -55,7 +57,17 @@ public class AlarmService extends IntentService {
    * @param timeInMillis the time to trigger the alarm
    */
   private void scheduleAlarm(final long timeInMillis) {
-    final long triggerAtMillis = Math.max(System.currentTimeMillis() + 1000, timeInMillis);
+    final Calendar calendar = Calendar.getInstance();
+    if (calendar.get(Calendar.HOUR_OF_DAY) > 17) {
+      calendar.add(Calendar.DATE, 1);
+    }
+
+    calendar.set(Calendar.HOUR_OF_DAY, 17);
+    calendar.set(Calendar.MINUTE, 0);
+    calendar.set(Calendar.SECOND, 0);
+    calendar.set(Calendar.MILLISECOND, 0);
+
+    final long triggerAtMillis = Math.max(calendar.getTimeInMillis(), timeInMillis);
     alarmManager.set(AlarmManager.RTC_WAKEUP, triggerAtMillis, makePendingIntent());
   }
 

@@ -53,9 +53,6 @@ public class MainActivity extends Activity implements FriendDialogListener {
 
     contactResolver = new ContactResolver(getContentResolver());
     callLogResolver = new CallLogResolver(getContentResolver());
-
-    final Intent intent = new Intent(this, AlarmService.class);
-    startService(intent);
   }
 
   @Override
