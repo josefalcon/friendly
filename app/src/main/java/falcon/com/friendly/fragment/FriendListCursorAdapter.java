@@ -92,7 +92,7 @@ public class FriendListCursorAdapter extends ResourceCursorAdapter {
    */
   private int getColorIndicator(final float scale) {
     int color = RED;
-    if (scale < 0.35) {
+    if (scale < 0.5) {
       color = GREEN;
     } else if (scale < 0.75) {
       color = ORANGE;

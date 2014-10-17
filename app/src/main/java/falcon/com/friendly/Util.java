@@ -3,6 +3,8 @@ package falcon.com.friendly;
 import android.telephony.PhoneNumberUtils;
 import android.text.format.DateUtils;
 
+import java.util.Calendar;
+
 /**
  * Utility functions.
  */
@@ -42,16 +44,15 @@ public final class Util {
     return PhoneNumberUtils.stripSeparators(PhoneNumberUtils.formatNumber(rawNumber));
   }
 
-  public static String inClausePlaceholders(final int count) {
-    final StringBuilder sb = new StringBuilder("(");
-    final int posts = count - 1;
-    for (int i = 0; i < count; i++) {
-      sb.append("?");
-      if (i < posts) {
-        sb.append(",");
-      }
-    }
-    sb.append(")");
-    return sb.toString();
+  /**
+   * Rests the given calendar object's time to 0.
+   *
+   * @param calendar the object to modify
+   */
+  public static void resetCalendarTime(final Calendar calendar) {
+    calendar.set(Calendar.HOUR_OF_DAY, 0);
+    calendar.set(Calendar.MINUTE, 0);
+    calendar.set(Calendar.SECOND, 0);
+    calendar.set(Calendar.MILLISECOND, 0);
   }
 }

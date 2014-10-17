@@ -9,6 +9,7 @@ import android.database.sqlite.SQLiteDatabase;
 
 import java.util.Calendar;
 
+import falcon.com.friendly.Util;
 import falcon.com.friendly.receiver.AlarmReceiver;
 import falcon.com.friendly.store.FriendlyDatabaseHelper;
 
@@ -44,7 +45,11 @@ public class AlarmService extends IntentService {
       if (cursor.moveToNext()) {
         final long lastContact = cursor.getLong(cursor.getColumnIndex("last_contact"));
         final long frequency = cursor.getLong(cursor.getColumnIndex("frequency"));
-        scheduleAlarm(lastContact + frequency);
+        long triggerAtMillis = getNextDefaultAlarmTime();
+        if (lastContact > 0) {
+          triggerAtMillis = lastContact + frequency;
+        }
+        scheduleAlarm(triggerAtMillis);
       }
     } finally {
       cursor.close();
@@ -52,22 +57,29 @@ public class AlarmService extends IntentService {
   }
 
   /**
-   * Schedules an alarm at the given time in milliseconds.
+   * Returns the next default alarm time. 5pm today, or tomorrow if it is later than 5pm.
    *
-   * @param timeInMillis the time to trigger the alarm
+   * @return the next default alarm time
    */
-  private void scheduleAlarm(final long timeInMillis) {
-    final Calendar calendar = Calendar.getInstance();
-    if (calendar.get(Calendar.HOUR_OF_DAY) > 17) {
-      calendar.add(Calendar.DATE, 1);
+  private long getNextDefaultAlarmTime() {
+    final Calendar nextAlarm = Calendar.getInstance();
+    Util.resetCalendarTime(nextAlarm);
+    nextAlarm.set(Calendar.HOUR_OF_DAY, 17);
+
+    final Calendar now = Calendar.getInstance();
+    if (now.after(nextAlarm)) {
+      nextAlarm.add(Calendar.DATE, 1);
     }
 
-    calendar.set(Calendar.HOUR_OF_DAY, 17);
-    calendar.set(Calendar.MINUTE, 0);
-    calendar.set(Calendar.SECOND, 0);
-    calendar.set(Calendar.MILLISECOND, 0);
+    return nextAlarm.getTimeInMillis();
+  }
 
-    final long triggerAtMillis = Math.max(calendar.getTimeInMillis(), timeInMillis);
+  /**
+   * Schedules an alarm at the given time in milliseconds.
+   *
+   * @param triggerAtMillis the time to trigger the alarm
+   */
+  private void scheduleAlarm(final long triggerAtMillis) {
     alarmManager.set(AlarmManager.RTC_WAKEUP, triggerAtMillis, makePendingIntent());
   }
 
