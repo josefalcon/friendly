@@ -6,6 +6,7 @@ import android.graphics.Color;
 import android.net.Uri;
 import android.provider.ContactsContract;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.IconTextView;
 import android.widget.ResourceCursorAdapter;
 import android.widget.TextView;
@@ -27,26 +28,37 @@ public class FriendListCursorAdapter extends ResourceCursorAdapter {
     this.context = context;
   }
 
+  private static class ViewHolder {
+    private TextView contactNameView;
+    private TextView lastContactView;
+    private IconTextView frequencyIconView;
+  }
+
   @Override
   public void bindView(final View view, final Context context, final Cursor cursor) {
-    final TextView contactNameView = (TextView) view.findViewById(R.id.contact_name);
-    final TextView lastContactView = (TextView) view.findViewById(R.id.last_contact);
-    final IconTextView frequencyIconView = (IconTextView) view.findViewById(R.id.frequency_icon);
+    ViewHolder holder = (ViewHolder) view.getTag();
+    if (holder == null) {
+      holder = new ViewHolder();
+      holder.contactNameView = (TextView) view.findViewById(R.id.contact_name);
+      holder.lastContactView = (TextView) view.findViewById(R.id.last_contact);
+      holder.frequencyIconView = (IconTextView) view.findViewById(R.id.frequency_icon);
+      view.setTag(holder);
+    }
 
     final String name = getContactName(cursor);
-    contactNameView.setText(name);
+    holder.contactNameView.setText(name);
 
     final long lastContact = cursor.getLong(cursor.getColumnIndex(FriendEntry.LAST_CONTACT));
     final CharSequence text = Util.getRelativeTime(lastContact, "too long ago!");
-    lastContactView.setText(text);
+    holder.lastContactView.setText(text);
 
     final long frequency = cursor.getLong(cursor.getColumnIndex(FriendEntry.FREQUENCY));
     final long now = System.currentTimeMillis();
     if (lastContact < 0 || lastContact + frequency <= now) {
-      frequencyIconView.setTextColor(RED);
+      holder.frequencyIconView.setTextColor(RED);
     } else {
       final float scale = (now - lastContact) / (float) frequency;
-      frequencyIconView.setTextColor(getColorIndicator(scale));
+      holder.frequencyIconView.setTextColor(getColorIndicator(scale));
     }
   }
 
