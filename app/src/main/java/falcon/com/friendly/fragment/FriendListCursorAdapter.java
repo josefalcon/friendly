@@ -6,8 +6,8 @@ import android.graphics.Color;
 import android.net.Uri;
 import android.provider.ContactsContract;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.IconTextView;
+import android.widget.RelativeLayout;
 import android.widget.ResourceCursorAdapter;
 import android.widget.TextView;
 
@@ -23,15 +23,23 @@ public class FriendListCursorAdapter extends ResourceCursorAdapter {
 
   private final Context context;
 
-  public FriendListCursorAdapter(final Context context) {
+  private final View.OnTouchListener touchListener;
+
+  public FriendListCursorAdapter(final Context context,
+                                 final View.OnTouchListener touchListener) {
     super(context, R.layout.friend_row, null, 0);
     this.context = context;
+    this.touchListener = touchListener;
   }
 
-  private static class ViewHolder {
-    private TextView contactNameView;
-    private TextView lastContactView;
-    private IconTextView frequencyIconView;
+  static class ViewHolder {
+    long id;
+    TextView contactNameView;
+    TextView lastContactView;
+    IconTextView frequencyIconView;
+    View callBackdropView;
+    View deleteBackdropView;
+    RelativeLayout frontView;
   }
 
   @Override
@@ -42,8 +50,15 @@ public class FriendListCursorAdapter extends ResourceCursorAdapter {
       holder.contactNameView = (TextView) view.findViewById(R.id.contact_name);
       holder.lastContactView = (TextView) view.findViewById(R.id.last_contact);
       holder.frequencyIconView = (IconTextView) view.findViewById(R.id.frequency_icon);
+      holder.callBackdropView = view.findViewById(R.id.call_backdrop);
+      holder.deleteBackdropView = view.findViewById(R.id.delete_backdrop);
+      holder.frontView = (RelativeLayout) view.findViewById(R.id.front);
+
+      holder.frontView.setOnTouchListener(touchListener);
       view.setTag(holder);
     }
+
+    holder.id = cursor.getLong(cursor.getColumnIndex(FriendEntry._ID));
 
     final String name = getContactName(cursor);
     holder.contactNameView.setText(name);

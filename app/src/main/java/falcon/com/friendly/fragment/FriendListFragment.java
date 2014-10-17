@@ -13,6 +13,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
+import android.widget.FrameLayout;
 import android.widget.ListView;
 
 import falcon.com.friendly.R;
@@ -20,19 +21,23 @@ import falcon.com.friendly.dialog.FriendDialog;
 import falcon.com.friendly.resolver.ContactResolver;
 import falcon.com.friendly.service.CallLogUpdateService;
 import falcon.com.friendly.store.FriendlyDatabaseHelper;
+import falcon.com.friendly.extra.ListViewSwiper;
 
 import static falcon.com.friendly.store.FriendContract.FriendEntry;
 
 /**
  * A simple {@link Fragment} subclass for displaying a list of friends.
  */
-public class FriendListFragment extends Fragment implements LoaderManager.LoaderCallbacks<Cursor>{
+public class FriendListFragment extends Fragment implements LoaderManager.LoaderCallbacks<Cursor>,
+                                                            ListViewSwiper.SwipeListener {
 
   private static final String T = "FriendFragment";
 
   private ListView listView;
 
-  private FriendListCursorAdapter listViewAdapter;
+  private ListViewSwiper listViewSwiper;
+
+  private FriendListCursorAdapter listAdapter;
 
   private ContactResolver contactResolver;
 
@@ -71,8 +76,10 @@ public class FriendListFragment extends Fragment implements LoaderManager.Loader
   public void onActivityCreated(final Bundle savedInstanceState) {
     super.onActivityCreated(savedInstanceState);
 
-    listViewAdapter = new FriendListCursorAdapter(getActivity());
-    listView.setAdapter(listViewAdapter);
+    listViewSwiper = new ListViewSwiper(listView, this);
+    listAdapter = new FriendListCursorAdapter(getActivity(),
+                                              listViewSwiper.getOnTouchListener());
+    listView.setAdapter(listAdapter);
     listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
       @Override
       public void onItemClick(final AdapterView<?> parent,
@@ -101,12 +108,12 @@ public class FriendListFragment extends Fragment implements LoaderManager.Loader
 
   @Override
   public void onLoadFinished(final Loader<Cursor> loader, final Cursor data) {
-    listViewAdapter.changeCursor(data);
+    listAdapter.changeCursor(data);
   }
 
   @Override
   public void onLoaderReset(final Loader<Cursor> loader) {
-    listViewAdapter.changeCursor(null);
+    listAdapter.changeCursor(null);
   }
 
   /**
@@ -123,7 +130,7 @@ public class FriendListFragment extends Fragment implements LoaderManager.Loader
    */
   private void showFriendDialog(final int position) {
     Log.d(T, "Showing friend at position " + position);
-    final Cursor cursor = listViewAdapter.getCursor();
+    final Cursor cursor = listAdapter.getCursor();
     if (cursor.moveToPosition(position)) {
       final long contactId = cursor.getLong(cursor.getColumnIndex(FriendEntry.CONTACT_ID));
       final String lookupKey = cursor.getString(cursor.getColumnIndex(FriendEntry.LOOKUP_KEY));
@@ -144,4 +151,50 @@ public class FriendListFragment extends Fragment implements LoaderManager.Loader
     }
   }
 
+  /**
+   * Deletes the given friend id from the database.
+   *
+   * @param id the id of the friend to delete
+   * @return true if this invocation removed a value from the database, false otherwise
+   */
+  private boolean deleteFriend(final long id) {
+    final FriendlyDatabaseHelper databaseHelper = FriendlyDatabaseHelper.getInstance(getActivity());
+    final SQLiteDatabase db = databaseHelper.getWritableDatabase();
+
+    final String whereClause = FriendEntry._ID + " = ?";
+    final String[] whereArgs = new String[] { String.valueOf(id) };
+    return db.delete(FriendEntry.TABLE, whereClause, whereArgs) > 0;
+  }
+
+  @Override
+  public void onMoveLeft(final View view) {
+    final FrameLayout parent = (FrameLayout) view.getParent();
+    final FriendListCursorAdapter.ViewHolder holder =
+      (FriendListCursorAdapter.ViewHolder) parent.getTag();
+    holder.callBackdropView.setVisibility(View.GONE);
+    holder.deleteBackdropView.setVisibility(View.VISIBLE);
+  }
+
+  @Override
+  public void onSwipedLeft(final View view) {
+    final FrameLayout parent = (FrameLayout) view.getParent();
+    final FriendListCursorAdapter.ViewHolder holder =
+      (FriendListCursorAdapter.ViewHolder) parent.getTag();
+    deleteFriend(holder.id);
+    refresh();
+  }
+
+  @Override
+  public void onMoveRight(final View view) {
+    final FrameLayout parent = (FrameLayout) view.getParent();
+    final FriendListCursorAdapter.ViewHolder holder =
+      (FriendListCursorAdapter.ViewHolder) parent.getTag();
+    holder.callBackdropView.setVisibility(View.VISIBLE);
+    holder.deleteBackdropView.setVisibility(View.GONE);
+  }
+
+  @Override
+  public void onSwipedRight(final View view) {
+    Log.d(T, "swiped right");
+  }
 }

@@ -1,10 +1,8 @@
 package falcon.com.friendly;
 
 import android.app.Activity;
-import android.app.AlarmManager;
 import android.app.DialogFragment;
 import android.app.Fragment;
-import android.app.PendingIntent;
 import android.content.ContentValues;
 import android.content.Intent;
 import android.database.SQLException;
@@ -25,7 +23,6 @@ import java.util.Map;
 import falcon.com.friendly.dialog.FriendDialog;
 import falcon.com.friendly.dialog.FriendDialogListener;
 import falcon.com.friendly.fragment.FriendListFragment;
-import falcon.com.friendly.receiver.AlarmReceiver;
 import falcon.com.friendly.resolver.CallLogResolver;
 import falcon.com.friendly.resolver.ContactResolver;
 import falcon.com.friendly.service.AlarmService;
@@ -58,15 +55,13 @@ public class MainActivity extends Activity implements FriendDialogListener {
   @Override
   public boolean onCreateOptionsMenu(final Menu menu) {
     getMenuInflater().inflate(R.menu.main, menu);
-
     menu.findItem(R.id.action_new_friend).setIcon(
       new IconDrawable(this, Iconify.IconValue.fa_plus)
         .colorRes(R.color.white)
         .actionBarSize());
 
     // hide the settings menu
-    menu.findItem(R.id.action_settings)
-      .setVisible(false);
+    menu.findItem(R.id.action_settings).setVisible(false);
 
     return true;
   }
