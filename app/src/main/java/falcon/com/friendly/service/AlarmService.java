@@ -45,8 +45,9 @@ public class AlarmService extends IntentService {
       if (cursor.moveToNext()) {
         final long lastContact = cursor.getLong(cursor.getColumnIndex("last_contact"));
         final long frequency = cursor.getLong(cursor.getColumnIndex("frequency"));
+        final long nextTrigger = lastContact + frequency;
         long triggerAtMillis = getNextDefaultAlarmTime();
-        if (lastContact > 0) {
+        if (lastContact > 0 && nextTrigger > System.currentTimeMillis()) {
           triggerAtMillis = lastContact + frequency;
         }
         scheduleAlarm(triggerAtMillis);
