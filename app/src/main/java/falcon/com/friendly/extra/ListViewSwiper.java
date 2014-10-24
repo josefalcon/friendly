@@ -1,5 +1,6 @@
 package falcon.com.friendly.extra;
 
+import android.util.Log;
 import android.view.MotionEvent;
 import android.view.VelocityTracker;
 import android.view.View;
@@ -12,6 +13,8 @@ import android.widget.ListView;
  * Code based on: https://www.youtube.com/watch?v=YCHNAi9kJI4
  */
 public class ListViewSwiper {
+
+  private static final String T = "ListViewSwiper";
 
   private static final int LEFT = -1;
   private static final int RIGHT = 1;
@@ -168,7 +171,9 @@ public class ListViewSwiper {
             }
           });
       } else {
-
+        final int position = listView.getPositionForView(v);
+        final long id = listView.getItemIdAtPosition(position);
+        listView.performItemClick(v, position, id);
       }
       isItemPressed = false;
     }
