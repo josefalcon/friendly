@@ -34,6 +34,7 @@ public class FriendListCursorAdapter extends ResourceCursorAdapter {
 
   static class ViewHolder {
     long id;
+    String number;
     TextView contactNameView;
     TextView lastContactView;
     IconTextView frequencyIconView;
@@ -59,6 +60,7 @@ public class FriendListCursorAdapter extends ResourceCursorAdapter {
     }
 
     holder.id = cursor.getLong(cursor.getColumnIndex(FriendEntry._ID));
+    holder.number = cursor.getString(cursor.getColumnIndex(FriendEntry.NUMBER));
 
     final String name = getContactName(cursor);
     holder.contactNameView.setText(name);

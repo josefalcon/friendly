@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.content.Loader;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -195,6 +196,14 @@ public class FriendListFragment extends Fragment implements LoaderManager.Loader
 
   @Override
   public void onSwipedRight(final View view) {
-    Log.d(T, "swiped right");
+    final FrameLayout parent = (FrameLayout) view.getParent();
+    final FriendListCursorAdapter.ViewHolder holder =
+      (FriendListCursorAdapter.ViewHolder) parent.getTag();
+
+    Log.d(T, "Dialing friend: " + holder.number);
+    final Intent intent = new Intent(Intent.ACTION_DIAL);
+    intent.setData(Uri.parse("tel:" + holder.number));
+    intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+    startActivity(intent);
   }
 }

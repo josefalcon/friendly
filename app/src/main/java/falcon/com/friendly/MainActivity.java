@@ -102,6 +102,7 @@ public class MainActivity extends Activity implements FriendDialogListener {
                                   final Intent data) {
     if (requestCode == PICK_CONTACT_REQUEST && resultCode == RESULT_OK) {
       final Uri contactUri = data.getData();
+      Log.d(T, contactUri.toString());
       final Bundle contact = contactResolver.getContact(contactUri);
 
       final long lastContact = callLogResolver.getLastContact(contact.getString(NUMBER));
