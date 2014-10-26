@@ -15,6 +15,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Toast;
 
+import com.cocosw.undobar.UndoBarController;
 import com.joanzapata.android.iconify.IconDrawable;
 import com.joanzapata.android.iconify.Iconify;
 
@@ -125,10 +126,12 @@ public class MainActivity extends Activity implements FriendDialogListener {
       if (name == null || name.isEmpty()) {
         name = "Contact";
       }
-      Toast.makeText(this, name + " saved", Toast.LENGTH_SHORT).show();
+
+      final UndoBarController.UndoBar undoBar =
+        new UndoBarController.UndoBar(this).style(UndoBarController.MESSAGESTYLE);
+      undoBar.message(name + " saved");
+      undoBar.show();
       friendListFragment.refresh();
-    } else {
-      // TODO JF!
     }
   }
 

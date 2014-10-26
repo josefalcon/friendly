@@ -41,10 +41,11 @@
     </style>
 
     <style name="SimpleUndoBarButton" parent="UndoBarButtonMaterial">
-        <item name="android:textColor">@color/orange</item>
+        <item name="android:textColor">@color/light_purple</item>
         <item name="android:drawableLeft">@null</item>
         <item name="android:textAllCaps">true</item>
         <item name="android:textSize">14sp</item>
+        <item name="android:textStyle">bold</item>
         <item name="android:layout_marginRight">12dp</item>
     </style>
 

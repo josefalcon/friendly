@@ -123,7 +123,7 @@ public class FriendListCursorAdapter extends ResourceCursorAdapter {
     int color = RED;
     if (scale < 0.5) {
       color = GREEN;
-    } else if (scale < 0.75) {
+    } else if (scale < 0.9) {
       color = ORANGE;
     }
     return color;
