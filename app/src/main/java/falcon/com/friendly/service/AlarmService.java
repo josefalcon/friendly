@@ -11,7 +11,10 @@ import java.util.Calendar;
 
 import falcon.com.friendly.Util;
 import falcon.com.friendly.receiver.AlarmReceiver;
+import falcon.com.friendly.store.FriendContract;
 import falcon.com.friendly.store.FriendlyDatabaseHelper;
+
+import static falcon.com.friendly.store.FriendContract.*;
 
 public class AlarmService extends IntentService {
 
@@ -33,18 +36,11 @@ public class AlarmService extends IntentService {
   protected void onHandleIntent(final Intent intent) {
     cancelExistingAlarm();
 
-    final SQLiteDatabase db =
-      FriendlyDatabaseHelper.getInstance(this).getReadableDatabase();
-
-    final String query =
-      "SELECT max(last_contact) as last_contact, min(frequency) as frequency FROM friend GROUP BY contact_id, lookup_key "
-      + "ORDER BY (strftime('%s','now') - (last_contact / 1000)) / (1.0 * frequency) DESC LIMIT 1";
-
-    final Cursor cursor = db.rawQuery(query, null);
+    final Cursor cursor = FriendlyDatabaseHelper.getInstance(this).listFriends(1);
     try {
       if (cursor.moveToNext()) {
-        final long lastContact = cursor.getLong(cursor.getColumnIndex("last_contact"));
-        final long frequency = cursor.getLong(cursor.getColumnIndex("frequency"));
+        final long lastContact = cursor.getLong(cursor.getColumnIndex(FriendEntry.LAST_CONTACT));
+        final long frequency = cursor.getLong(cursor.getColumnIndex(FriendEntry.FREQUENCY));
         final long nextTrigger = lastContact + frequency;
         long triggerAtMillis = getNextDefaultAlarmTime();
         if (lastContact > 0 && nextTrigger > System.currentTimeMillis()) {

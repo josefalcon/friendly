@@ -148,23 +148,11 @@ public class MainActivity extends Activity implements FriendDialogListener {
   private boolean saveFriend(final ContentValues contentValues) {
     Log.d(T, "Saving friend...");
     final FriendlyDatabaseHelper helper = FriendlyDatabaseHelper.getInstance(this);
-    final SQLiteDatabase db = helper.getWritableDatabase();
-    try {
-
-      for (Map.Entry<String, Object> e : contentValues.valueSet()) {
-        Log.d(T, e.getKey() + " : " + e.getValue());
-      }
-
-      final long id = db.replaceOrThrow(FriendContract.FriendEntry.TABLE, null, contentValues);
-      final boolean modified = id != -1;
-      if (modified) {
-        final Intent intent = new Intent(this, AlarmService.class);
-        startService(intent);
-      }
-      return modified;
-    } catch (final SQLException e) {
-      Log.d(T, "Ignoring duplicate friend...");
+    final boolean modified = helper.updateOrCreate(contentValues);
+    if (modified) {
+      final Intent intent = new Intent(this, AlarmService.class);
+      startService(intent);
     }
-    return false;
+    return modified;
   }
 }

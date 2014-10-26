@@ -118,12 +118,7 @@ public class FriendListFragment extends Fragment implements LoaderManager.Loader
     return new CursorLoader(getActivity(), null, null, null, null, null) {
       @Override
       public Cursor loadInBackground() {
-        final SQLiteDatabase db =
-          FriendlyDatabaseHelper.getInstance(getActivity()).getReadableDatabase();
-        final String query =
-          "SELECT *, max(last_contact), min(frequency) FROM friend GROUP BY contact_id, lookup_key "
-          + "ORDER BY (CAST(strftime('%s','now') as integer) - (last_contact / 1000)) / (1.0 * frequency) DESC";
-        return db.rawQuery(query, null);
+        return FriendlyDatabaseHelper.getInstance(getActivity()).listFriends(null);
       }
     };
   }
@@ -174,24 +169,13 @@ public class FriendListFragment extends Fragment implements LoaderManager.Loader
   }
 
   /**
-   * Deletes the given friend id from the database.
-   *
-   * @param id the id of the friend to delete
-   * @return true if this invocation removed a value from the database, false otherwise
+   * Removes partially deleted friends and refreshes the cursor.
    */
-  private boolean deleteFriend(final long id) {
-    final FriendlyDatabaseHelper databaseHelper = FriendlyDatabaseHelper.getInstance(getActivity());
-    final SQLiteDatabase db = databaseHelper.getWritableDatabase();
-
-    final String whereClause = FriendEntry._ID + " = ?";
-    final String[] whereArgs = new String[] { String.valueOf(id) };
-    return db.delete(FriendEntry.TABLE, whereClause, whereArgs) > 0;
-  }
-
   private void removeDeletedFriends() {
     if (!idsToDelete.isEmpty()) {
+      final FriendlyDatabaseHelper dbHelper = FriendlyDatabaseHelper.getInstance(getActivity());
       for (final Long id : idsToDelete) {
-        deleteFriend(id);
+        dbHelper.deleteFriend(id);
       }
       idsToDelete.clear();
       refresh();

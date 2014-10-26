@@ -65,35 +65,18 @@ public class NotificationService extends IntentService {
     context.startService(new Intent(context, AlarmService.class));
   }
 
+  /**
+   * Returns the text to display in the alarm.
+   *
+   * @return text to display in the alarm
+   */
   private String getContentText() {
-    final SQLiteDatabase db =
-      FriendlyDatabaseHelper.getInstance(this).getReadableDatabase();
-
-    final String query =
-      "SELECT * FROM friend "
-      + "WHERE ((last_contact + frequency) / 1000) < CAST(strftime('%s','now') as integer) "
-      + "GROUP BY contact_id, lookup_key";
-
-    final Cursor cursor = db.rawQuery(query, null);
-    try {
-      final int count = cursor.getCount();
-      if (count == 1) {
-        // TODO: make a domain object!
-        cursor.moveToNext();
-        final long contactId =
-          cursor.getLong(cursor.getColumnIndex(FriendContract.FriendEntry.CONTACT_ID));
-        final String lookupKey =
-          cursor.getString(cursor.getColumnIndex(FriendContract.FriendEntry.LOOKUP_KEY));
-        final int type =
-          cursor.getInt(cursor.getColumnIndex(FriendContract.FriendEntry.TYPE));
-
-        final Bundle contact = contactResolver.getContact(contactId, lookupKey, type);
-        return String.format("Give %s a quick call!", contact.getString("display_name"));
-      } else {
-        return String.format("You've got %s friends to call!", count);
-      }
-    } finally {
-      cursor.close();
+    final int count = FriendlyDatabaseHelper.getInstance(this).countOffendingFriends();
+    String friends = "friend";
+    if (count != 1) {
+      friends += "s";
     }
+
+    return String.format("You've got %s %s to call!", count, friends);
   }
 }
