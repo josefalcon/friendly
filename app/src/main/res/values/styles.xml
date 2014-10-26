@@ -8,6 +8,7 @@
         <item name="android:windowContentOverlay">@null</item>
 
         <item name="android:spinnerItemStyle">@style/GraySpinnerItem</item>
+        <item name="undoBarStyle">@style/SimpleUndoBar</item>
     </style>
 
     <!-- Action bar style -->
@@ -30,5 +31,21 @@
         <item name="android:textSize">16sp</item>
     </style>
 
+    <style name="SimpleUndoBar" parent="UndoBarMaterialStyle">
+        <item name="messageStyle">@style/SimpleUndoBarMessageStyle</item>
+        <item name="buttonStyle">@style/SimpleUndoBarButton</item>
+    </style>
+
+    <style name="SimpleUndoBarMessageStyle" parent="UndoBarMessageMaterial">
+        <item name="android:textSize">14sp</item>
+    </style>
+
+    <style name="SimpleUndoBarButton" parent="UndoBarButtonMaterial">
+        <item name="android:textColor">@color/orange</item>
+        <item name="android:drawableLeft">@null</item>
+        <item name="android:textAllCaps">true</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:layout_marginRight">12dp</item>
+    </style>
 
 </resources>

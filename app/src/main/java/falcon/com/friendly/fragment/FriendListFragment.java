@@ -9,6 +9,7 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Parcelable;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -17,13 +18,21 @@ import android.widget.AdapterView;
 import android.widget.FrameLayout;
 import android.widget.ListView;
 
+import com.cocosw.undobar.UndoBarController;
+import com.cocosw.undobar.UndoBarStyle;
+
+import java.util.HashSet;
+import java.util.Set;
+
 import falcon.com.friendly.R;
 import falcon.com.friendly.dialog.FriendDialog;
+import falcon.com.friendly.extra.DeleteCursorWrapper;
+import falcon.com.friendly.extra.ListViewSwiper;
 import falcon.com.friendly.resolver.ContactResolver;
 import falcon.com.friendly.service.CallLogUpdateService;
 import falcon.com.friendly.store.FriendlyDatabaseHelper;
-import falcon.com.friendly.extra.ListViewSwiper;
 
+import static com.cocosw.undobar.UndoBarController.UndoBar;
 import static falcon.com.friendly.store.FriendContract.FriendEntry;
 
 /**
@@ -34,6 +43,9 @@ public class FriendListFragment extends Fragment implements LoaderManager.Loader
 
   private static final String T = "FriendFragment";
 
+  private static final UndoBarStyle UNDO_BAR_STYLE =
+    new UndoBarStyle(-1, com.cocosw.undobar.R.string.undo);
+
   private ListView listView;
 
   private ListViewSwiper listViewSwiper;
@@ -41,6 +53,8 @@ public class FriendListFragment extends Fragment implements LoaderManager.Loader
   private FriendListCursorAdapter listAdapter;
 
   private ContactResolver contactResolver;
+
+  private Set<Long> idsToDelete;
 
   public FriendListFragment() {
   }
@@ -53,6 +67,13 @@ public class FriendListFragment extends Fragment implements LoaderManager.Loader
     getLoaderManager().initLoader(0, null, this);
 
     contactResolver = new ContactResolver(getActivity().getContentResolver());
+    idsToDelete = new HashSet<>();
+  }
+
+  @Override
+  public void onStop() {
+    super.onStop();
+    removeDeletedFriends();
   }
 
   @Override
@@ -167,6 +188,16 @@ public class FriendListFragment extends Fragment implements LoaderManager.Loader
     return db.delete(FriendEntry.TABLE, whereClause, whereArgs) > 0;
   }
 
+  private void removeDeletedFriends() {
+    if (!idsToDelete.isEmpty()) {
+      for (final Long id : idsToDelete) {
+        deleteFriend(id);
+      }
+      idsToDelete.clear();
+      refresh();
+    }
+  }
+
   @Override
   public void onMoveLeft(final View view) {
     final FrameLayout parent = (FrameLayout) view.getParent();
@@ -181,8 +212,38 @@ public class FriendListFragment extends Fragment implements LoaderManager.Loader
     final FrameLayout parent = (FrameLayout) view.getParent();
     final FriendListCursorAdapter.ViewHolder holder =
       (FriendListCursorAdapter.ViewHolder) parent.getTag();
-    deleteFriend(holder.id);
-    refresh();
+
+    // fake the delete
+    final long id = holder.id;
+    idsToDelete.add(id);
+
+    final int position = listView.getPositionForView(view);
+    final Cursor originalCursor = listAdapter.getCursor();
+    final DeleteCursorWrapper cursorWrapper =
+      new DeleteCursorWrapper(originalCursor, position);
+
+    listAdapter.swapCursor(cursorWrapper);
+
+    final UndoBar undoBar = new UndoBar(getActivity()).style(UNDO_BAR_STYLE);
+    undoBar.message("Removed " + holder.contactName);
+    undoBar.listener(new UndoBarController.AdvancedUndoListener() {
+      @Override
+      public void onHide(final Parcelable parcelable) {
+        onClear();
+      }
+
+      @Override
+      public void onClear() {
+        removeDeletedFriends();
+      }
+
+      @Override
+      public void onUndo(final Parcelable parcelable) {
+        listAdapter.swapCursor(originalCursor);
+        idsToDelete.remove(id);
+      }
+    });
+    undoBar.show();
   }
 
   @Override
