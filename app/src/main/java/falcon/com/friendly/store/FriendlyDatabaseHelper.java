@@ -2,38 +2,53 @@ package falcon.com.friendly.store;
 
 import android.content.ContentValues;
 import android.content.Context;
-import android.content.Intent;
 import android.database.Cursor;
-import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
-import android.util.Log;
 
-import falcon.com.friendly.service.AlarmService;
+import java.util.ArrayList;
 
 import static falcon.com.friendly.store.FriendContract.FriendEntry;
+import static falcon.com.friendly.store.FriendContract.PhoneEntry;
 
 public class FriendlyDatabaseHelper extends SQLiteOpenHelper {
 
   public static final String T = "FriendlyDatabaseHelper";
 
-  public static final int DATABASE_VERSION = 10;
+  public static final int DATABASE_VERSION = 15;
 
   public static final String DATABASE_NAME = "Friendly";
 
   private static final String CREATE_FRIEND_ENTRY_TABLE_SQL =
     "CREATE TABLE IF NOT EXISTS "
     + FriendEntry.TABLE + " ("
-    + FriendEntry._ID + " INTEGER PRIMARY KEY, "
-    + FriendEntry.NUMBER + " TEXT, "
-    + FriendEntry.TYPE + " INTEGER, "
+    + FriendEntry._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
     + FriendEntry.CONTACT_ID + " INTEGER, "
     + FriendEntry.LOOKUP_KEY + " TEXT, "
+    + FriendEntry.DISPLAY_NAME + " TEXT, "
     + FriendEntry.LAST_CONTACT + " INTEGER, "
     + FriendEntry.FREQUENCY + " INTEGER, "
     + "UNIQUE ("
-    + FriendEntry.NUMBER
+    + FriendEntry.CONTACT_ID
+    + ", "
+    + FriendEntry.LOOKUP_KEY
     + "))";
+
+  private static final String CREATE_PHONE_ENTRY_TABLE_SQL =
+    "CREATE TABLE IF NOT EXISTS "
+    + PhoneEntry.TABLE + " ("
+    + PhoneEntry._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
+    + PhoneEntry.FRIEND_ID + " INTEGER, "
+    + PhoneEntry.NUMBER + " TEXT, "
+    + PhoneEntry.TYPE + " INTEGER, "
+    + "UNIQUE ("
+    + PhoneEntry.FRIEND_ID
+    + ", "
+    + PhoneEntry.NUMBER
+    + ") "
+    + "FOREIGN KEY(" + PhoneEntry.FRIEND_ID + ") "
+    + "REFERENCES " + FriendEntry.TABLE + "(" + FriendEntry._ID + ")"
+    + ")";
 
   private static FriendlyDatabaseHelper singleton;
 
@@ -51,42 +66,169 @@ public class FriendlyDatabaseHelper extends SQLiteOpenHelper {
   @Override
   public void onCreate(final SQLiteDatabase db) {
     db.execSQL(CREATE_FRIEND_ENTRY_TABLE_SQL);
+    db.execSQL(CREATE_PHONE_ENTRY_TABLE_SQL);
   }
 
   @Override
   public void onUpgrade(final SQLiteDatabase db, final int oldVersion, final int newVersion) {
     db.execSQL("DROP TABLE " + FriendEntry.TABLE);
+    db.execSQL("DROP TABLE " + PhoneEntry.TABLE);
     onCreate(db);
   }
 
   /**
-   * Updates or creates the given friend.
+   * Creates a new friend in the database.
    *
-   * @param contentValues the friend to update or create.
-   * @return true if this invocation modified the database, false otherwise
+   * @param friend the friend to create
+   * @return true if the database was modified as a result of this invocation
    */
-  public boolean updateOrCreate(final ContentValues contentValues) {
+  public boolean createFriend(final Friend friend) {
     final SQLiteDatabase db = getWritableDatabase();
+
+    final ContentValues cv = asContentValues(friend);
     try {
-      final long id = db.replaceOrThrow(FriendContract.FriendEntry.TABLE, null, contentValues);
-      return id != -1;
-    } catch (final SQLException e) {
-      Log.d(T, "Ignoring duplicate friend");
+      db.beginTransaction();
+      final long id = db.insert(FriendEntry.TABLE, null, cv);
+
+      boolean success = id != -1;
+      if (success && friend.numbers != null) {
+        for (final Phone phone : friend.numbers) {
+          if (createPhoneForFriend(phone, id)) {
+            // any failure to create a friend should cancel the transaction
+            success = false;
+            break;
+          }
+        }
+      }
+
+      if (success) {
+        db.setTransactionSuccessful();
+      }
+      return success;
+    } finally {
+      db.endTransaction();
     }
-    return false;
   }
 
   /**
-   * Deletes the given friend id from the database.
+   * Persists the given phone for the given friend id.
+   *
+   * @param phone     the phone to persist
+   * @param friendId  the owner of the phone
+   * @return true if the invocation of this method modified the database, false otherwise
+   */
+  private boolean createPhoneForFriend(final Phone phone, final long friendId) {
+    final SQLiteDatabase db = getWritableDatabase();
+
+    final ContentValues cv = new ContentValues();
+    cv.put(PhoneEntry.FRIEND_ID, friendId);
+    cv.put(PhoneEntry.NUMBER, phone.number);
+    cv.put(PhoneEntry.TYPE, phone.type);
+    return db.insert(PhoneEntry.TABLE, null, cv) == -1;
+  }
+
+  /**
+   * Returns the Friend associated with the given contact id and lookup key.
+   *
+   * @param contactId the contact id
+   * @param lookupKey the contact lookup key
+   * @return the Friend associated with the given contact id and lookup key, or null.
+   */
+  public Friend getFriend(final long contactId, final String lookupKey) {
+    final SQLiteDatabase db = getReadableDatabase();
+
+    final String query =
+      "SELECT f.*, p._id as phone_id, p.number, p.type FROM friend as f "
+      + "JOIN phone as p ON p.friend_id = f._id "
+      + "WHERE f.contact_id = ? "
+      + "AND f.lookup_key = ?";
+
+    final Cursor cursor = db.rawQuery(query, new String[] { String.valueOf(contactId), lookupKey });
+
+    Friend friend = null;
+    try {
+      while (cursor.moveToNext()) {
+        if (friend == null) {
+          friend = new Friend();
+          friend.id = cursor.getLong(cursor.getColumnIndex(FriendEntry._ID));
+          friend.contactId = contactId;
+          friend.lookupKey = lookupKey;
+          friend.displayName = cursor.getString(cursor.getColumnIndex(FriendEntry.DISPLAY_NAME));
+          friend.lastContact = cursor.getLong(cursor.getColumnIndex(FriendEntry.LAST_CONTACT));
+          friend.frequency = cursor.getLong(cursor.getColumnIndex(FriendEntry.FREQUENCY));
+          friend.numbers = new ArrayList<>(cursor.getCount());
+        }
+
+        final Phone phone = new Phone();
+        phone.id = cursor.getLong(cursor.getColumnIndex("phone_id"));
+        phone.number = cursor.getString(cursor.getColumnIndex(PhoneEntry.NUMBER));
+        phone.type = cursor.getInt(cursor.getColumnIndex(PhoneEntry.TYPE));
+        friend.numbers.add(phone);
+      }
+    } finally {
+      cursor.close();
+    }
+    return friend;
+  }
+
+  /**
+   * Updates the given friend.
+   *
+   * @param friend the friend to update or create.
+   * @return true if this invocation modified the database, false otherwise
+   */
+  public boolean updateFriend(final Friend friend) {
+    final SQLiteDatabase db = getWritableDatabase();
+
+    final ContentValues cv = asContentValues(friend);
+    try {
+      db.beginTransaction();
+      final String whereClause = FriendEntry._ID + " = ?";
+      final String[] whereArgs = new String[] { String.valueOf(friend.id) };
+
+      final int count = db.update(FriendEntry.TABLE, cv, whereClause, whereArgs);
+      boolean success = count == 1;
+      if (success && friend.numbers != null) {
+        for (final Phone phone : friend.numbers) {
+          if (phone.id == null) {
+            if (createPhoneForFriend(phone, friend.id)) {
+              // any failure to create a friend should cancel the transaction
+              success = false;
+              break;
+            }
+          }
+        }
+      }
+
+      if (success) {
+        db.setTransactionSuccessful();
+      }
+      return success;
+    } finally {
+      db.endTransaction();
+    }
+  }
+
+  /**
+   * Deletes the given friend id from the database, along with any associated phone numbers.
    *
    * @param id the id of the friend to delete
    * @return true if this invocation removed a value from the database, false otherwise
    */
   public boolean deleteFriend(final long id) {
     final SQLiteDatabase db = getWritableDatabase();
-    final String whereClause = FriendEntry._ID + " = ?";
+
     final String[] whereArgs = new String[] { String.valueOf(id) };
-    return db.delete(FriendEntry.TABLE, whereClause, whereArgs) > 0;
+    try {
+      db.beginTransaction();
+      int deleted = 0;
+      deleted += db.delete(PhoneEntry.TABLE, PhoneEntry.FRIEND_ID + " = ?", whereArgs);
+      deleted += db.delete(FriendEntry.TABLE, FriendEntry._ID + " = ?", whereArgs);
+      db.setTransactionSuccessful();
+      return deleted > 0;
+    } finally {
+      db.endTransaction();
+    }
   }
 
   /**
@@ -98,9 +240,8 @@ public class FriendlyDatabaseHelper extends SQLiteOpenHelper {
   public Cursor listFriends(final Integer limit) {
     final SQLiteDatabase db = getReadableDatabase();
     String query =
-      "SELECT *, max(last_contact), min(frequency) "
+      "SELECT *"
       + "FROM friend "
-      + "GROUP BY contact_id, lookup_key "
       + "ORDER BY "
       + "(CAST(strftime('%s','now') as integer) - (last_contact / 1000)) / (1.0 * frequency) DESC";
     if (limit != null) {
@@ -128,6 +269,27 @@ public class FriendlyDatabaseHelper extends SQLiteOpenHelper {
     } finally {
       cursor.close();
     }
+  }
+
+  /**
+   * Converts the given friend to ContentValues, suitable for SQL calls. Does not include phone
+   * values in the returned map.
+   *
+   * @param friend the friend to convert
+   * @return new ContentValues
+   */
+  private static ContentValues asContentValues(final Friend friend) {
+    final ContentValues cv = new ContentValues();
+    cv.put(FriendEntry.CONTACT_ID, friend.contactId);
+    cv.put(FriendEntry.LOOKUP_KEY, friend.lookupKey);
+    cv.put(FriendEntry.DISPLAY_NAME, friend.displayName);
+    cv.put(FriendEntry.LAST_CONTACT, friend.lastContact);
+    cv.put(FriendEntry.FREQUENCY, friend.frequency);
+
+    if (friend.id != null) {
+      cv.put(FriendEntry._ID, friend.id);
+    }
+    return cv;
   }
 
 }

@@ -5,6 +5,7 @@ import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.DialogFragment;
 import android.content.DialogInterface;
+import android.graphics.Typeface;
 import android.os.Bundle;
 import android.provider.ContactsContract;
 import android.telephony.PhoneNumberUtils;
@@ -12,17 +13,15 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
 
 import falcon.com.friendly.R;
 import falcon.com.friendly.TimeUnit;
 import falcon.com.friendly.Util;
-import falcon.com.friendly.store.FriendContract;
-
-import static android.provider.ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME;
-import static android.provider.ContactsContract.CommonDataKinds.Phone.NUMBER;
-import static android.provider.ContactsContract.CommonDataKinds.Phone.TYPE;
+import falcon.com.friendly.store.Friend;
+import falcon.com.friendly.store.Phone;
 
 public class FriendDialog extends DialogFragment {
 
@@ -42,15 +41,14 @@ public class FriendDialog extends DialogFragment {
   @Override
   public Dialog onCreateDialog(final Bundle savedInstanceState) {
     final Activity activity = getActivity();
-    final Bundle arguments = getArguments();
+    final Friend friend = getArguments().getParcelable("friend");
 
     final AlertDialog.Builder builder = new AlertDialog.Builder(activity);
     final LayoutInflater inflater = activity.getLayoutInflater();
     final View view = inflater.inflate(R.layout.activity_new_friend, null);
 
+    final LinearLayout contactHeader = (LinearLayout) view.findViewById(R.id.contact_header);
     final TextView contactNameView = (TextView) view.findViewById(R.id.contact_name);
-    final TextView contactPhoneView = (TextView) view.findViewById(R.id.contact_phone);
-    final TextView contactPhoneTypeView = (TextView) view.findViewById(R.id.contact_phone_type);
     final TextView lastContactView = (TextView) view.findViewById(R.id.last_contact);
     final EditText quantityView = (EditText) view.findViewById(R.id.quantity);
     final Spinner timeUnitSpinner = (Spinner) view.findViewById(R.id.time_unit);
@@ -62,8 +60,8 @@ public class FriendDialog extends DialogFragment {
           final TimeUnit timeUnit = TimeUnit.getByIndex(timeUnitSpinner.getSelectedItemPosition());
           final long frequency = timeUnit.inMilliseconds(quantity);
 
-          if (arguments != null && frequency > 0) {
-            arguments.putLong(FriendContract.FriendEntry.FREQUENCY, frequency);
+          if (friend != null && frequency > 0) {
+            friend.frequency = frequency;
           }
 
           friendDialogListener.onDialogPositiveClick(FriendDialog.this);
@@ -86,9 +84,9 @@ public class FriendDialog extends DialogFragment {
     timeUnitAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
     timeUnitSpinner.setAdapter(timeUnitAdapter);
 
-    final long frequency = arguments.getLong(FriendContract.FriendEntry.FREQUENCY);
-    if (frequency > 0) {
-      int i = 0;
+    final Long frequency = friend.frequency;
+    if (frequency != null && frequency > 0) {
+      int i;
       TimeUnit bestUnit = TimeUnit.DAYS;
       final TimeUnit[] values = TimeUnit.values();
       for (i = values.length - 1; i >= 0; i--) {
@@ -104,13 +102,28 @@ public class FriendDialog extends DialogFragment {
       timeUnitSpinner.setSelection(i);
     }
 
+    contactNameView.setText(friend.displayName);
+    lastContactView.setText(Util.getRelativeTime(friend.lastContact, "too long ago!"));
 
-    contactNameView.setText(arguments.getString(DISPLAY_NAME));
-    contactPhoneView.setText(PhoneNumberUtils.formatNumber(arguments.getString(NUMBER)));
-    contactPhoneTypeView.setText(getPhoneTypeString(arguments.getInt(TYPE)) + " ");
+    // TODO: a bit of a hack for now.
+    for (final Phone phone : friend.numbers) {
+      final LinearLayout numberDetails = new LinearLayout(getActivity());
 
-    final long lastContact = arguments.getLong(FriendContract.FriendEntry.LAST_CONTACT);
-    lastContactView.setText(Util.getRelativeTime(lastContact, "too long ago!"));
+      final TextView phoneTypeView = new TextView(getActivity());
+      phoneTypeView.setText(getPhoneTypeString(phone.type) + " ");
+      phoneTypeView.setTextAppearance(getActivity(), android.R.style.TextAppearance_Small);
+      phoneTypeView.setTextColor(getResources().getColor(R.color.gray));
+      phoneTypeView.setTypeface(null, Typeface.BOLD);
+
+      final TextView phoneNumberView = new TextView(getActivity());
+      phoneNumberView.setText(PhoneNumberUtils.formatNumber(phone.number));
+      phoneNumberView.setTextAppearance(getActivity(), android.R.style.TextAppearance_Small);
+      phoneNumberView.setTextColor(getResources().getColor(R.color.gray));
+
+      numberDetails.addView(phoneTypeView);
+      numberDetails.addView(phoneNumberView);
+      contactHeader.addView(numberDetails);
+    }
     return alertDialog;
   }
 

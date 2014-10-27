@@ -61,7 +61,8 @@ public class FriendListCursorAdapter extends ResourceCursorAdapter {
     }
 
     holder.id = cursor.getLong(cursor.getColumnIndex(FriendEntry._ID));
-    holder.number = cursor.getString(cursor.getColumnIndex(FriendEntry.NUMBER));
+    // TODO: fix dial!
+//    holder.number = cursor.getString(cursor.getColumnIndex(FriendEntry.NUMBER));
     holder.contactName = getContactName(cursor);
     holder.contactNameView.setText(holder.contactName);
 

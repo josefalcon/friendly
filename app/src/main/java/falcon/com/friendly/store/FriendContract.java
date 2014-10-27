@@ -7,12 +7,18 @@ public final class FriendContract {
   private FriendContract() {
   }
 
-  public static abstract class FriendEntry implements BaseColumns {
+  public static abstract class PhoneEntry implements BaseColumns {
 
-    public static final String TABLE = "friend";
+    public static final String TABLE = "phone";
 
     /**
-     * The unique phone number associated with this friend.
+     * The friend id associated with this number.
+     * <P>Type: NUMBER</P>
+     */
+    public static final String FRIEND_ID = "friend_id";
+
+    /**
+     * The phone number.
      * <P>Type: TEXT</P>
      */
     public static final String NUMBER = "number";
@@ -22,6 +28,12 @@ public final class FriendContract {
      * <P>Type: INTEGER</P>
      */
     public static final String TYPE = "type";
+
+  }
+
+  public static abstract class FriendEntry implements BaseColumns {
+
+    public static final String TABLE = "friend";
 
     /**
      * The contact id associated with this friend.
@@ -34,6 +46,12 @@ public final class FriendContract {
      * <P>Type: TEXT</P>
      */
     public static final String LOOKUP_KEY = "lookup_key";
+
+    /**
+     * The display name of the friend.
+     * <P>Type: TEXT</P>
+     */
+    public static final String DISPLAY_NAME = "display_name";
 
     /**
      * The date of the last contact with this friend, stored as the number of milliseconds since

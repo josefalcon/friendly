@@ -6,7 +6,8 @@
     tools:context="falcon.com.friendly.NewFriendActivity">
 
 
-    <LinearLayout android:layout_width="match_parent"
+    <LinearLayout android:id="@+id/contact_header"
+                  android:layout_width="match_parent"
                   android:layout_height="match_parent"
                   android:background="@color/white"
                   android:orientation="vertical"
@@ -20,26 +21,6 @@
             android:layout_height="wrap_content"
             android:textAppearance="?android:attr/textAppearanceLarge"
             android:id="@+id/contact_name"/>
-
-        <LinearLayout android:id="@+id/number_details"
-                      android:layout_width="wrap_content"
-                      android:layout_height="wrap_content">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textAppearance="?android:attr/textAppearanceMedium"
-                android:textColor="@color/gray"
-                android:textStyle="bold"
-                android:id="@+id/contact_phone_type"/>
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textAppearance="?android:attr/textAppearanceMedium"
-                android:textColor="@color/gray"
-                android:id="@+id/contact_phone"/>
-        </LinearLayout>
 
     </LinearLayout>
 

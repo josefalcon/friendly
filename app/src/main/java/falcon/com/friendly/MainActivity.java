@@ -3,23 +3,17 @@ package falcon.com.friendly;
 import android.app.Activity;
 import android.app.DialogFragment;
 import android.app.Fragment;
-import android.content.ContentValues;
 import android.content.Intent;
-import android.database.SQLException;
-import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.ContactsContract;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.Toast;
 
 import com.cocosw.undobar.UndoBarController;
 import com.joanzapata.android.iconify.IconDrawable;
 import com.joanzapata.android.iconify.Iconify;
-
-import java.util.Map;
 
 import falcon.com.friendly.dialog.FriendDialog;
 import falcon.com.friendly.dialog.FriendDialogListener;
@@ -27,12 +21,10 @@ import falcon.com.friendly.fragment.FriendListFragment;
 import falcon.com.friendly.resolver.CallLogResolver;
 import falcon.com.friendly.resolver.ContactResolver;
 import falcon.com.friendly.service.AlarmService;
-import falcon.com.friendly.store.FriendContract;
+import falcon.com.friendly.store.Friend;
 import falcon.com.friendly.store.FriendlyDatabaseHelper;
 
 import static android.provider.ContactsContract.CommonDataKinds.Phone.CONTENT_TYPE;
-import static android.provider.ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME;
-import static android.provider.ContactsContract.CommonDataKinds.Phone.NUMBER;
 
 public class MainActivity extends Activity implements FriendDialogListener {
 
@@ -103,26 +95,28 @@ public class MainActivity extends Activity implements FriendDialogListener {
                                   final Intent data) {
     if (requestCode == PICK_CONTACT_REQUEST && resultCode == RESULT_OK) {
       final Uri contactUri = data.getData();
-      Log.d(T, contactUri.toString());
-      final Bundle contact = contactResolver.getContact(contactUri);
-
-      final long lastContact = callLogResolver.getLastContact(contact.getString(NUMBER));
-      contact.putLong(FriendContract.FriendEntry.LAST_CONTACT, lastContact);
+      final Friend newFriend = contactResolver.getContactAsFriend(contactUri);
+      final FriendlyDatabaseHelper db = FriendlyDatabaseHelper.getInstance(this);
+      final Friend oldFriend = db.getFriend(newFriend.contactId, newFriend.lookupKey);
+      if (oldFriend != null) {
+        // merge in the new details if the contact already exists
+        oldFriend.merge(newFriend);
+      }
 
       final FriendDialog friendDialog = new FriendDialog();
-      friendDialog.setArguments(contact);
+      final Bundle args = new Bundle(1);
+      args.putParcelable("friend", (oldFriend != null) ? oldFriend : newFriend);
+      friendDialog.setArguments(args);
       friendDialog.show(getFragmentManager(), "FriendDialog");
     }
   }
 
   @Override
   public void onDialogPositiveClick(final DialogFragment dialog) {
-    Log.d(T, "Positive FriendDialog click");
     final Bundle contact = dialog.getArguments();
-    final ContentValues contentValues = contactResolver.getFriendContentValues(contact);
-    if (saveFriend(contentValues)) {
-      Log.d(T, "Saved friend");
-      String name = contact.getString(DISPLAY_NAME);
+    final Friend friend = contact.getParcelable("friend");
+    if (saveFriend(friend)) {
+      String name = friend.displayName;
       if (name == null || name.isEmpty()) {
         name = "Contact";
       }
@@ -141,18 +135,25 @@ public class MainActivity extends Activity implements FriendDialogListener {
   }
 
   /**
-   * Persists the given ContentValues to the Friend database table.
+   * Persists the given Friend to the Friend database table.
    *
-   * @param contentValues the ContentValues representing a Friend.
+   * @param friend the friend to save
    */
-  private boolean saveFriend(final ContentValues contentValues) {
-    Log.d(T, "Saving friend...");
+  private boolean saveFriend(final Friend friend) {
+    Log.d(T, "Saving friend");
     final FriendlyDatabaseHelper helper = FriendlyDatabaseHelper.getInstance(this);
-    final boolean modified = helper.updateOrCreate(contentValues);
+    final boolean modified;
+    if (friend.id == null) {
+      modified = helper.createFriend(friend);
+    } else {
+      modified = helper.updateFriend(friend);
+    }
+
     if (modified) {
       final Intent intent = new Intent(this, AlarmService.class);
       startService(intent);
     }
     return modified;
   }
+
 }

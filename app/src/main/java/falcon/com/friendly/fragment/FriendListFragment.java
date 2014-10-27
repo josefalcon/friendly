@@ -6,7 +6,6 @@ import android.content.CursorLoader;
 import android.content.Intent;
 import android.content.Loader;
 import android.database.Cursor;
-import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Parcelable;
@@ -28,8 +27,8 @@ import falcon.com.friendly.R;
 import falcon.com.friendly.dialog.FriendDialog;
 import falcon.com.friendly.extra.DeleteCursorWrapper;
 import falcon.com.friendly.extra.ListViewSwiper;
-import falcon.com.friendly.resolver.ContactResolver;
 import falcon.com.friendly.service.CallLogUpdateService;
+import falcon.com.friendly.store.Friend;
 import falcon.com.friendly.store.FriendlyDatabaseHelper;
 
 import static com.cocosw.undobar.UndoBarController.UndoBar;
@@ -52,8 +51,6 @@ public class FriendListFragment extends Fragment implements LoaderManager.Loader
 
   private FriendListCursorAdapter listAdapter;
 
-  private ContactResolver contactResolver;
-
   private Set<Long> idsToDelete;
 
   public FriendListFragment() {
@@ -65,8 +62,6 @@ public class FriendListFragment extends Fragment implements LoaderManager.Loader
 
     // start contact loader
     getLoaderManager().initLoader(0, null, this);
-
-    contactResolver = new ContactResolver(getActivity().getContentResolver());
     idsToDelete = new HashSet<>();
   }
 
@@ -149,21 +144,17 @@ public class FriendListFragment extends Fragment implements LoaderManager.Loader
     Log.d(T, "Showing friend at position " + position);
     final Cursor cursor = listAdapter.getCursor();
     if (cursor.moveToPosition(position)) {
+
       final long contactId = cursor.getLong(cursor.getColumnIndex(FriendEntry.CONTACT_ID));
       final String lookupKey = cursor.getString(cursor.getColumnIndex(FriendEntry.LOOKUP_KEY));
-      final int type = cursor.getInt(cursor.getColumnIndex(FriendEntry.TYPE));
-      final long lastContact = cursor.getLong(cursor.getColumnIndex(FriendEntry.LAST_CONTACT));
-      final long frequency = cursor.getLong(cursor.getColumnIndex(FriendEntry.FREQUENCY));
 
-      final Bundle contact = contactResolver.getContact(contactId, lookupKey, type);
-      contact.putLong(FriendEntry.CONTACT_ID, contactId);
-      contact.putString(FriendEntry.LOOKUP_KEY, lookupKey);
-      contact.putInt(FriendEntry.TYPE, type);
-      contact.putLong(FriendEntry.LAST_CONTACT, lastContact);
-      contact.putLong(FriendEntry.FREQUENCY, frequency);
+      final FriendlyDatabaseHelper db = FriendlyDatabaseHelper.getInstance(getActivity());
+      final Friend friend = db.getFriend(contactId, lookupKey);
 
       final FriendDialog friendDialog = new FriendDialog();
-      friendDialog.setArguments(contact);
+      final Bundle args = new Bundle(1);
+      args.putParcelable("friend", friend);
+      friendDialog.setArguments(args);
       friendDialog.show(getFragmentManager(), "FriendDialog");
     }
   }

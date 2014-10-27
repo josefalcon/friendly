@@ -7,9 +7,14 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.util.Log;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import falcon.com.friendly.resolver.CallLogResolver;
-import falcon.com.friendly.store.FriendContract;
 import falcon.com.friendly.store.FriendlyDatabaseHelper;
+
+import static falcon.com.friendly.store.FriendContract.FriendEntry;
+import static falcon.com.friendly.store.FriendContract.PhoneEntry;
 
 /**
  * An IntentService for updating the Friend database with recent call log activity.
@@ -24,38 +29,46 @@ public class CallLogUpdateService extends IntentService {
 
   @Override
   protected void onHandleIntent(final Intent intent) {
-    Log.d(T, "Requested to update last contact");
-
     final CallLogResolver callLogResolver = new CallLogResolver(getContentResolver());
-
     final SQLiteDatabase db =
       FriendlyDatabaseHelper.getInstance(this).getWritableDatabase();
-    final Cursor cursor =
-      db.query(FriendContract.FriendEntry.TABLE, null, null, null, null, null, null);
 
+    final Cursor cursor =
+      db.query(PhoneEntry.TABLE, null, null, null, null, null, null);
+
+    final Map<Long, Long> friendIdToLastContact = new HashMap<>();
     try {
       while (cursor.moveToNext()) {
-        final long lastContact =
-          cursor.getLong(cursor.getColumnIndex(FriendContract.FriendEntry.LAST_CONTACT));
+        final long friendId =
+          cursor.getLong(cursor.getColumnIndex(PhoneEntry.FRIEND_ID));
         final String number =
-          cursor.getString(cursor.getColumnIndex(FriendContract.FriendEntry.NUMBER));
+          cursor.getString(cursor.getColumnIndex(PhoneEntry.NUMBER));
 
         final long latestContact = callLogResolver.getLastContact(number);
-        if (latestContact > lastContact) {
-          final long id = cursor.getLong(cursor.getColumnIndex(FriendContract.FriendEntry._ID));
-
-          Log.d(T, "Updating last contact for " + id);
-          final ContentValues contentValues = new ContentValues();
-          contentValues.put(FriendContract.FriendEntry.LAST_CONTACT, latestContact);
-          db.update(FriendContract.FriendEntry.TABLE,
-                    contentValues,
-                    FriendContract.FriendEntry._ID + " = ?",
-                    new String[]{String.valueOf(id)});
+        final Long lastContact = friendIdToLastContact.get(friendId);
+        if (lastContact == null || latestContact > lastContact) {
+          friendIdToLastContact.put(friendId, latestContact);
         }
       }
     } finally {
       cursor.close();
     }
+
+    for (final Map.Entry<Long, Long> entry : friendIdToLastContact.entrySet()) {
+      final Long friendId = entry.getKey();
+      final Long latestContact = entry.getValue();
+
+      if (latestContact != -1) {
+        Log.d(T, "Updating last contact for " + friendId);
+        final ContentValues contentValues = new ContentValues();
+        contentValues.put(FriendEntry.LAST_CONTACT, latestContact);
+        db.update(FriendEntry.TABLE,
+                  contentValues,
+                  FriendEntry._ID + " = ?",
+                  new String[]{String.valueOf(friendId)});
+      }
+    }
+
   }
 
 }
