@@ -9,6 +9,7 @@ import android.graphics.Typeface;
 import android.os.Bundle;
 import android.provider.ContactsContract;
 import android.telephony.PhoneNumberUtils;
+import android.text.Html;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.ArrayAdapter;
@@ -23,6 +24,9 @@ import falcon.com.friendly.Util;
 import falcon.com.friendly.store.Friend;
 import falcon.com.friendly.store.Phone;
 
+/**
+ * A dialog shown when adding/modifying a friend.
+ */
 public class FriendDialog extends DialogFragment {
 
   private FriendDialogListener friendDialogListener;
@@ -37,6 +41,8 @@ public class FriendDialog extends DialogFragment {
                                    + " must implement FriendDialogListener");
     }
   }
+
+  private static final String PHONE_NUMBER_FORMAT = "<strong>%s</strong> %s";
 
   @Override
   public Dialog onCreateDialog(final Bundle savedInstanceState) {
@@ -105,24 +111,17 @@ public class FriendDialog extends DialogFragment {
     contactNameView.setText(friend.displayName);
     lastContactView.setText(Util.getRelativeTime(friend.lastContact, "too long ago!"));
 
-    // TODO: a bit of a hack for now.
     for (final Phone phone : friend.numbers) {
-      final LinearLayout numberDetails = new LinearLayout(getActivity());
-
-      final TextView phoneTypeView = new TextView(getActivity());
-      phoneTypeView.setText(getPhoneTypeString(phone.type) + " ");
-      phoneTypeView.setTextAppearance(getActivity(), android.R.style.TextAppearance_Small);
-      phoneTypeView.setTextColor(getResources().getColor(R.color.gray));
-      phoneTypeView.setTypeface(null, Typeface.BOLD);
+      final String formattedNumber = PhoneNumberUtils.formatNumber(phone.number);
+      final String phoneTypeString = getPhoneTypeString(phone.type);
+      final String phoneNumberHtml =
+        String.format(PHONE_NUMBER_FORMAT, phoneTypeString, formattedNumber);
 
       final TextView phoneNumberView = new TextView(getActivity());
-      phoneNumberView.setText(PhoneNumberUtils.formatNumber(phone.number));
+      phoneNumberView.setText(Html.fromHtml(phoneNumberHtml));
       phoneNumberView.setTextAppearance(getActivity(), android.R.style.TextAppearance_Small);
       phoneNumberView.setTextColor(getResources().getColor(R.color.gray));
-
-      numberDetails.addView(phoneTypeView);
-      numberDetails.addView(phoneNumberView);
-      contactHeader.addView(numberDetails);
+      contactHeader.addView(phoneNumberView);
     }
     return alertDialog;
   }

@@ -20,16 +20,19 @@ import android.widget.ListView;
 import com.cocosw.undobar.UndoBarController;
 import com.cocosw.undobar.UndoBarStyle;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 
 import falcon.com.friendly.R;
+import falcon.com.friendly.dialog.CallDialog;
 import falcon.com.friendly.dialog.FriendDialog;
 import falcon.com.friendly.extra.DeleteCursorWrapper;
 import falcon.com.friendly.extra.ListViewSwiper;
 import falcon.com.friendly.service.CallLogUpdateService;
 import falcon.com.friendly.store.Friend;
 import falcon.com.friendly.store.FriendlyDatabaseHelper;
+import falcon.com.friendly.store.Phone;
 
 import static com.cocosw.undobar.UndoBarController.UndoBar;
 import static falcon.com.friendly.store.FriendContract.FriendEntry;
@@ -52,6 +55,9 @@ public class FriendListFragment extends Fragment implements LoaderManager.Loader
   private FriendListCursorAdapter listAdapter;
 
   private Set<Long> idsToDelete;
+
+  private FriendlyDatabaseHelper databaseHelper;
+
 
   public FriendListFragment() {
   }
@@ -106,6 +112,7 @@ public class FriendListFragment extends Fragment implements LoaderManager.Loader
         showFriendDialog(position);
       }
     });
+    databaseHelper = FriendlyDatabaseHelper.getInstance(getActivity());
   }
 
   @Override
@@ -236,10 +243,23 @@ public class FriendListFragment extends Fragment implements LoaderManager.Loader
     final FriendListCursorAdapter.ViewHolder holder =
       (FriendListCursorAdapter.ViewHolder) parent.getTag();
 
-    Log.d(T, "Dialing friend: " + holder.number);
-    final Intent intent = new Intent(Intent.ACTION_DIAL);
-    intent.setData(Uri.parse("tel:" + holder.number));
-    intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-    startActivity(intent);
+    final ArrayList<Phone> phoneNumbers = databaseHelper.getPhoneNumbers(holder.id);
+    final int count = phoneNumbers.size();
+    if (count == 0) {
+      Log.e(T, "No phone number found for: " + holder.id);
+    } else if (count == 1) {
+      final Phone phone = phoneNumbers.get(0);
+      Log.d(T, "Dialing friend: " + phone.number);
+      final Intent intent = new Intent(Intent.ACTION_DIAL);
+      intent.setData(Uri.parse("tel:" + phone.number));
+      intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+      startActivity(intent);
+    } else {
+      final CallDialog callDialog = new CallDialog();
+      final Bundle bundle = new Bundle(1);
+      bundle.putParcelableArrayList("phoneNumbers", phoneNumbers);
+      callDialog.setArguments(bundle);
+      callDialog.show(getFragmentManager(), CallDialog.T);
+    }
   }
 }

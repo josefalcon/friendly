@@ -7,6 +7,8 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 import static falcon.com.friendly.store.FriendContract.FriendEntry;
 import static falcon.com.friendly.store.FriendContract.PhoneEntry;
@@ -269,6 +271,35 @@ public class FriendlyDatabaseHelper extends SQLiteOpenHelper {
     } finally {
       cursor.close();
     }
+  }
+
+  /**
+   * Returns the phone numbers associated with the given friend id, or an empty list.
+   *
+   * @param friendId the owner of the phone
+   * @return a list of phone numbers
+   */
+  public ArrayList<Phone> getPhoneNumbers(final long friendId) {
+    final SQLiteDatabase db = getReadableDatabase();
+
+    final String[] whereArgs = new String[] { String.valueOf(friendId) };
+    final String whereClause = PhoneEntry.FRIEND_ID + " = ?";
+    final Cursor cursor =
+      db.query(PhoneEntry.TABLE, null, whereClause, whereArgs, null, null, null);
+
+    final ArrayList<Phone> numbers = new ArrayList<>();
+    try {
+      while (cursor.moveToNext()) {
+        final Phone phone = new Phone();
+        phone.id = cursor.getLong(cursor.getColumnIndex(PhoneEntry._ID));
+        phone.number = cursor.getString(cursor.getColumnIndex(PhoneEntry.NUMBER));
+        phone.type = cursor.getInt(cursor.getColumnIndex(PhoneEntry.TYPE));
+        numbers.add(phone);
+      }
+    } finally {
+      cursor.close();
+    }
+    return numbers;
   }
 
   /**

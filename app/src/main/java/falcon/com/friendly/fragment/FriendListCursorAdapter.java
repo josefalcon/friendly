@@ -13,6 +13,7 @@ import android.widget.TextView;
 
 import falcon.com.friendly.R;
 import falcon.com.friendly.Util;
+import falcon.com.friendly.store.Friend;
 
 import static falcon.com.friendly.store.FriendContract.FriendEntry;
 
@@ -34,7 +35,6 @@ public class FriendListCursorAdapter extends ResourceCursorAdapter {
 
   static class ViewHolder {
     long id;
-    String number;
     String contactName;
     TextView contactNameView;
     TextView lastContactView;
@@ -61,9 +61,7 @@ public class FriendListCursorAdapter extends ResourceCursorAdapter {
     }
 
     holder.id = cursor.getLong(cursor.getColumnIndex(FriendEntry._ID));
-    // TODO: fix dial!
-//    holder.number = cursor.getString(cursor.getColumnIndex(FriendEntry.NUMBER));
-    holder.contactName = getContactName(cursor);
+    holder.contactName = cursor.getString(cursor.getColumnIndex(FriendEntry.DISPLAY_NAME));
     holder.contactNameView.setText(holder.contactName);
 
     final long lastContact = cursor.getLong(cursor.getColumnIndex(FriendEntry.LAST_CONTACT));
@@ -78,34 +76,6 @@ public class FriendListCursorAdapter extends ResourceCursorAdapter {
       final float scale = (now - lastContact) / (float) frequency;
       holder.frequencyIconView.setTextColor(getColorIndicator(scale));
     }
-  }
-
-  private static final String[] DISPLAY_NAME_PROJECTION =
-    new String[]{ContactsContract.Contacts.DISPLAY_NAME};
-
-  /**
-   * Returns the contact's display name for the given cursor.
-   *
-   * @param cursor the cursor to fetch a name for
-   * @return the contact's display name
-   */
-  private String getContactName(final Cursor cursor) {
-    final String lookup =
-      cursor.getString(cursor.getColumnIndex(FriendEntry.LOOKUP_KEY));
-    final long contactId =
-      cursor.getLong(cursor.getColumnIndex(FriendEntry.CONTACT_ID));
-
-    final Uri lookupUri = ContactsContract.Contacts.getLookupUri(contactId, lookup);
-    final Cursor query =
-      context.getContentResolver().query(lookupUri, DISPLAY_NAME_PROJECTION, null, null, null);
-    try {
-      if (query.moveToFirst()) {
-        return query.getString(query.getColumnIndex(ContactsContract.Contacts.DISPLAY_NAME));
-      }
-    } finally {
-      query.close();
-    }
-    return "Unknown contact";
   }
 
   private static final int GREEN = Color.parseColor("#ff87B829");
